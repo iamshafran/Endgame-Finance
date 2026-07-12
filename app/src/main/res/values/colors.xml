@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-Compose window backgrounds (cold-start flash); must match ui/theme colors. -->
+    <color name="window_background_light">#F6FBF7</color>
+    <color name="window_background_dark">#0F1512</color>
+</resources>
