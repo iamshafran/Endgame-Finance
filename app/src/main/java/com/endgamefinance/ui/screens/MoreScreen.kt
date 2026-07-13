@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ fun MoreScreen(
     onOpenCategories: () -> Unit,
     onOpenTags: () -> Unit,
     onOpenReports: () -> Unit,
+    onOpenSecurity: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -58,6 +60,19 @@ fun MoreScreen(
                 )
             },
             modifier = Modifier.clickable(onClick = onOpenCategories),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Security & Backup") },
+            supportingContent = { Text("App lock, encrypted backups, exports") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenSecurity),
         )
         HorizontalDivider()
         ListItem(

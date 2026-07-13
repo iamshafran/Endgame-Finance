@@ -15,6 +15,7 @@ object Routes {
     const val REMINDER_EDIT = "reminder_edit" // ?reminderId={reminderId} for editing
     const val REPORTS = "reports" // reached from inside More
     const val SEARCH = "search" // ledger with filters open, launched from Dashboard
+    const val SECURITY = "security" // reached from inside More
 }
 
 data class BottomTab(

@@ -34,6 +34,7 @@ import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
 import com.endgamefinance.ui.screens.ledger.LedgerScreen
 import com.endgamefinance.ui.screens.reminders.ReminderEditScreen
 import com.endgamefinance.ui.screens.reports.ReportsScreen
+import com.endgamefinance.ui.screens.settings.SecurityScreen
 import com.endgamefinance.ui.screens.reminders.RemindersScreen
 import com.endgamefinance.ui.screens.tags.TagsScreen
 
@@ -63,6 +64,7 @@ fun EndgameApp() {
                         currentRoute == Routes.CATEGORIES ||
                         currentRoute == Routes.TAGS ||
                         currentRoute == Routes.REPORTS ||
+                        currentRoute == Routes.SECURITY ||
                         currentRoute?.startsWith(Routes.ACCOUNT_EDIT) == true
                     val selected = currentRoute == tab.route ||
                         (tab.route == Routes.MORE && moreSubRoutes) ||
@@ -97,6 +99,7 @@ fun EndgameApp() {
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
                     onSearch = { navController.navigate(Routes.SEARCH) },
+                    onOpenSecurity = { navController.navigate(Routes.SECURITY) },
                 )
             }
             composable(Routes.SEARCH) {
@@ -163,9 +166,11 @@ fun EndgameApp() {
                     onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
                     onOpenTags = { navController.navigate(Routes.TAGS) },
                     onOpenReports = { navController.navigate(Routes.REPORTS) },
+                    onOpenSecurity = { navController.navigate(Routes.SECURITY) },
                 )
             }
             composable(Routes.REPORTS) { ReportsScreen() }
+            composable(Routes.SECURITY) { SecurityScreen() }
             composable(Routes.CATEGORIES) { CategoriesScreen() }
             composable(Routes.TAGS) { TagsScreen() }
             composable(Routes.ACCOUNTS) {

@@ -37,6 +37,7 @@ import java.util.Date
 @Composable
 fun DashboardScreen(
     onSearch: () -> Unit,
+    onOpenSecurity: () -> Unit,
     viewModel: DashboardViewModel =
         viewModel(factory = DashboardViewModel.factory(LocalContext.current)),
 ) {
@@ -88,6 +89,35 @@ fun DashboardScreen(
                     )
                 }
                 NetWorthChart(snapshots = snapshots)
+            }
+        }
+
+        val context = LocalContext.current
+        val nudgeDue = remember { com.endgamefinance.security.BackupPrefs.isNudgeDue(context) }
+        if (nudgeDue) {
+            val lastBackup = remember {
+                com.endgamefinance.security.BackupPrefs.lastBackupAt(context)
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                    .clickable(onClick = onOpenSecurity),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                ),
+            ) {
+                Text(
+                    text = if (lastBackup == 0L) {
+                        "You haven't made a backup yet. Tap to create an encrypted backup."
+                    } else {
+                        val days = (System.currentTimeMillis() - lastBackup) / 86_400_000L
+                        "It's been $days days since your last backup. Tap to back up now."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(Spacing.md),
+                )
             }
         }
 

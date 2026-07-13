@@ -50,4 +50,5 @@ abstract class EndgameDatabase : RoomDatabase() {
     abstract fun envelopeDao(): EnvelopeDao
     abstract fun reminderDao(): ReminderDao
     abstract fun netWorthSnapshotDao(): NetWorthSnapshotDao
+    abstract fun backupDao(): com.endgamefinance.data.backup.BackupDao
 }
