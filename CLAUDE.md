@@ -102,13 +102,17 @@ CREATE TABLE reminders (
     name TEXT NOT NULL,
     category_id TEXT,
     account_id TEXT NOT NULL,
+    to_account_id TEXT,             -- destination for transfer/repayment reminders; posts as a transfer. Added in DB v5 (owner-approved, 2026-07-14)
     amount INTEGER,                 -- NULL if variable
     frequency TEXT NOT NULL,        -- 'daily','weekly','monthly','yearly','once'
+    frequency_interval INTEGER NOT NULL DEFAULT 1, -- every N units, e.g. 2+weekly = biweekly. Added in DB v4 (owner-approved, 2026-07-13)
+    anchor_day INTEGER,             -- intended day-of-month for monthly/yearly so month-end bills don't drift (Jan 31→Feb 28→Mar 31). Added in DB v4
     next_due_date INTEGER NOT NULL,
     is_auto_post INTEGER DEFAULT 0,
     is_auto_detected INTEGER DEFAULT 0,  -- created via recurring-transaction detection
     FOREIGN KEY (category_id) REFERENCES categories(id),
-    FOREIGN KEY (account_id) REFERENCES accounts(id)
+    FOREIGN KEY (account_id) REFERENCES accounts(id),
+    FOREIGN KEY (to_account_id) REFERENCES accounts(id)
 );
 
 -- BUDGETS (per category, per month)

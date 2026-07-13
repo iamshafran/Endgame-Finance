@@ -32,6 +32,8 @@ import com.endgamefinance.ui.screens.budget.BudgetScreen
 import com.endgamefinance.ui.screens.categories.CategoriesScreen
 import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
 import com.endgamefinance.ui.screens.ledger.LedgerScreen
+import com.endgamefinance.ui.screens.reminders.ReminderEditScreen
+import com.endgamefinance.ui.screens.reminders.RemindersScreen
 import com.endgamefinance.ui.screens.tags.TagsScreen
 
 @Composable
@@ -63,7 +65,9 @@ fun EndgameApp() {
                     val selected = currentRoute == tab.route ||
                         (tab.route == Routes.MORE && moreSubRoutes) ||
                         (tab.route == Routes.LEDGER &&
-                            currentRoute?.startsWith(Routes.TRANSACTION_ADD) == true)
+                            currentRoute?.startsWith(Routes.TRANSACTION_ADD) == true) ||
+                        (tab.route == Routes.REMINDERS &&
+                            currentRoute?.startsWith(Routes.REMINDER_EDIT) == true)
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
@@ -115,7 +119,27 @@ fun EndgameApp() {
                 BudgetScreen()
             }
             composable(Routes.REMINDERS) {
-                PlaceholderScreen("Reminders", "Bills and forecasting arrive in Milestone 3.")
+                RemindersScreen(
+                    onAddReminder = { navController.navigate(Routes.REMINDER_EDIT) },
+                    onEditReminder = { id ->
+                        navController.navigate("${Routes.REMINDER_EDIT}?reminderId=$id")
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.REMINDER_EDIT}?reminderId={reminderId}",
+                arguments = listOf(
+                    navArgument("reminderId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                ReminderEditScreen(
+                    reminderId = entry.arguments?.getString("reminderId"),
+                    onDone = { navController.popBackStack() },
+                )
             }
             composable(Routes.MORE) {
                 MoreScreen(

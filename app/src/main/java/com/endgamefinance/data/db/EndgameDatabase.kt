@@ -6,6 +6,7 @@ import com.endgamefinance.data.db.dao.AccountDao
 import com.endgamefinance.data.db.dao.BudgetDao
 import com.endgamefinance.data.db.dao.CategoryDao
 import com.endgamefinance.data.db.dao.EnvelopeDao
+import com.endgamefinance.data.db.dao.ReminderDao
 import com.endgamefinance.data.db.dao.TagDao
 import com.endgamefinance.data.db.dao.TransactionDao
 import com.endgamefinance.data.db.entity.Account
@@ -22,7 +23,7 @@ import com.endgamefinance.data.db.entity.TransactionSplit
 import com.endgamefinance.data.db.entity.TransactionTag
 
 @Database(
-    version = 3,
+    version = 5,
     exportSchema = true,
     entities = [
         Account::class,
@@ -46,4 +47,5 @@ abstract class EndgameDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
     abstract fun budgetDao(): BudgetDao
     abstract fun envelopeDao(): EnvelopeDao
+    abstract fun reminderDao(): ReminderDao
 }

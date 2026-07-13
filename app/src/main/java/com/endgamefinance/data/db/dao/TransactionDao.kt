@@ -161,4 +161,21 @@ interface TransactionDao {
         """,
     )
     fun observeAuditFor(transactionId: String): Flow<List<TransactionAudit>>
+
+    /** Feed for the recurring-pattern detector: real spending/income events only. */
+    @Query(
+        """
+        SELECT t.payee, t.account_id AS accountId, t.timestamp,
+               COALESCE((SELECT SUM(s.amount) FROM transaction_splits s
+                         WHERE s.transaction_id = t.id), 0) AS totalAmount,
+               (SELECT s.category_id FROM transaction_splits s
+                WHERE s.transaction_id = t.id AND s.category_id IS NOT NULL
+                LIMIT 1) AS categoryId
+        FROM transactions t
+        WHERE t.type IN ('expense', 'income')
+          AND t.payee != 'Starting Balance'
+        ORDER BY t.payee, t.timestamp
+        """,
+    )
+    fun observeDetectorRows(): Flow<List<com.endgamefinance.data.db.model.DetectorRow>>
 }

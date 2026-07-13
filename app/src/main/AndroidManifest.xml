@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Deliberately NO permissions: this app must never request INTERNET. -->
+    <!-- The ONLY permission this app requests itself: local bill notifications
+         (owner-approved, Milestone 3). It must never request INTERNET.
+         WorkManager merges in WAKE_LOCK / RECEIVE_BOOT_COMPLETED /
+         FOREGROUND_SERVICE (needed to survive doze and reboots); its
+         ACCESS_NETWORK_STATE is stripped below — this app never uses
+         network constraints and reads no connectivity state. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <application
+        android:name=".EndgameApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"

@@ -12,6 +12,7 @@ object Routes {
     const val CATEGORIES = "categories" // reached from inside More
     const val TAGS = "tags" // reached from inside More
     const val TRANSACTION_ADD = "transaction_add"
+    const val REMINDER_EDIT = "reminder_edit" // ?reminderId={reminderId} for editing
 }
 
 data class BottomTab(

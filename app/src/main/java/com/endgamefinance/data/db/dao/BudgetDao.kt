@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 data class CategorySpend(val categoryId: String, val spent: Long)
 data class CategoryMonthSpend(val categoryId: String, val month: String, val spent: Long)
+data class DaySpend(val day: String, val spent: Long)
 
 @Dao
 interface BudgetDao {
@@ -64,6 +65,37 @@ interface BudgetDao {
         """,
     )
     fun observeIncome(startMs: Long, endMs: Long): Flow<Long>
+
+    /**
+     * Spending per local calendar day in [startMs, endMs): expenses plus
+     * categorized transfer splits (loan interest), starting balances excluded.
+     */
+    @Query(
+        """
+        SELECT strftime('%Y-%m-%d', t.timestamp / 1000, 'unixepoch', 'localtime') AS day,
+               SUM(s.amount) AS spent
+        FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.timestamp >= :startMs AND t.timestamp < :endMs
+          AND t.payee != 'Starting Balance'
+          AND (t.type = 'expense' OR (t.type = 'transfer' AND s.category_id IS NOT NULL))
+        GROUP BY day
+        """,
+    )
+    fun observeSpendByDay(startMs: Long, endMs: Long): Flow<List<DaySpend>>
+
+    /** Total spending in [startMs, endMs) — same definition as observeSpendByDay. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(s.amount), 0)
+        FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.timestamp >= :startMs AND t.timestamp < :endMs
+          AND t.payee != 'Starting Balance'
+          AND (t.type = 'expense' OR (t.type = 'transfer' AND s.category_id IS NOT NULL))
+        """,
+    )
+    fun observeTotalSpend(startMs: Long, endMs: Long): Flow<Long>
 
     /** Full per-category monthly spend history (device zone) — feeds carry chains and rolling averages. */
     @Query(
