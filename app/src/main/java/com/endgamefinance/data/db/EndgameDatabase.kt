@@ -3,7 +3,9 @@ package com.endgamefinance.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.endgamefinance.data.db.dao.AccountDao
+import com.endgamefinance.data.db.dao.BudgetDao
 import com.endgamefinance.data.db.dao.CategoryDao
+import com.endgamefinance.data.db.dao.EnvelopeDao
 import com.endgamefinance.data.db.dao.TagDao
 import com.endgamefinance.data.db.dao.TransactionDao
 import com.endgamefinance.data.db.entity.Account
@@ -42,4 +44,6 @@ abstract class EndgameDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
     abstract fun tagDao(): TagDao
+    abstract fun budgetDao(): BudgetDao
+    abstract fun envelopeDao(): EnvelopeDao
 }

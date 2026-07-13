@@ -28,6 +28,7 @@ import com.endgamefinance.ui.screens.MoreScreen
 import com.endgamefinance.ui.screens.PlaceholderScreen
 import com.endgamefinance.ui.screens.accounts.AccountEditScreen
 import com.endgamefinance.ui.screens.accounts.AccountsScreen
+import com.endgamefinance.ui.screens.budget.BudgetScreen
 import com.endgamefinance.ui.screens.categories.CategoriesScreen
 import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
 import com.endgamefinance.ui.screens.ledger.LedgerScreen
@@ -111,7 +112,7 @@ fun EndgameApp() {
                 )
             }
             composable(Routes.BUDGET) {
-                PlaceholderScreen("Budget", "Envelope budgeting arrives in Milestone 2.")
+                BudgetScreen()
             }
             composable(Routes.REMINDERS) {
                 PlaceholderScreen("Reminders", "Bills and forecasting arrive in Milestone 3.")
