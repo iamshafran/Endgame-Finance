@@ -16,14 +16,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.endgamefinance.R
 import com.endgamefinance.ui.screens.DashboardScreen
 import com.endgamefinance.ui.screens.MoreScreen
 import com.endgamefinance.ui.screens.PlaceholderScreen
+import com.endgamefinance.ui.screens.accounts.AccountEditScreen
+import com.endgamefinance.ui.screens.accounts.AccountsScreen
+import com.endgamefinance.ui.screens.categories.CategoriesScreen
+import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
+import com.endgamefinance.ui.screens.ledger.LedgerScreen
+import com.endgamefinance.ui.screens.tags.TagsScreen
 
 @Composable
 private fun TabIcon(route: String) {
@@ -46,9 +54,15 @@ fun EndgameApp() {
         bottomBar = {
             NavigationBar {
                 bottomTabs.forEach { tab ->
-                    // Accounts lives under More, so keep the More tab highlighted there
+                    // Sub-screens of More keep the More tab highlighted
+                    val moreSubRoutes = currentRoute == Routes.ACCOUNTS ||
+                        currentRoute == Routes.CATEGORIES ||
+                        currentRoute == Routes.TAGS ||
+                        currentRoute?.startsWith(Routes.ACCOUNT_EDIT) == true
                     val selected = currentRoute == tab.route ||
-                        (tab.route == Routes.MORE && currentRoute == Routes.ACCOUNTS)
+                        (tab.route == Routes.MORE && moreSubRoutes) ||
+                        (tab.route == Routes.LEDGER &&
+                            currentRoute?.startsWith(Routes.TRANSACTION_ADD) == true)
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
@@ -74,7 +88,27 @@ fun EndgameApp() {
         ) {
             composable(Routes.DASHBOARD) { DashboardScreen() }
             composable(Routes.LEDGER) {
-                PlaceholderScreen("Ledger", "Transactions arrive in Milestone 1.")
+                LedgerScreen(
+                    onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
+                    onOpenTransaction = { id ->
+                        navController.navigate("${Routes.TRANSACTION_ADD}?transactionId=$id")
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.TRANSACTION_ADD}?transactionId={transactionId}",
+                arguments = listOf(
+                    navArgument("transactionId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                TransactionEntryScreen(
+                    transactionId = entry.arguments?.getString("transactionId"),
+                    onDone = { navController.popBackStack() },
+                )
             }
             composable(Routes.BUDGET) {
                 PlaceholderScreen("Budget", "Envelope budgeting arrives in Milestone 2.")
@@ -83,10 +117,36 @@ fun EndgameApp() {
                 PlaceholderScreen("Reminders", "Bills and forecasting arrive in Milestone 3.")
             }
             composable(Routes.MORE) {
-                MoreScreen(onOpenAccounts = { navController.navigate(Routes.ACCOUNTS) })
+                MoreScreen(
+                    onOpenAccounts = { navController.navigate(Routes.ACCOUNTS) },
+                    onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
+                    onOpenTags = { navController.navigate(Routes.TAGS) },
+                )
             }
+            composable(Routes.CATEGORIES) { CategoriesScreen() }
+            composable(Routes.TAGS) { TagsScreen() }
             composable(Routes.ACCOUNTS) {
-                PlaceholderScreen("Accounts", "Account management arrives in Milestone 1.")
+                AccountsScreen(
+                    onAddAccount = { navController.navigate(Routes.ACCOUNT_EDIT) },
+                    onEditAccount = { id ->
+                        navController.navigate("${Routes.ACCOUNT_EDIT}?accountId=$id")
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.ACCOUNT_EDIT}?accountId={accountId}",
+                arguments = listOf(
+                    navArgument("accountId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                AccountEditScreen(
+                    accountId = entry.arguments?.getString("accountId"),
+                    onDone = { navController.popBackStack() },
+                )
             }
         }
     }

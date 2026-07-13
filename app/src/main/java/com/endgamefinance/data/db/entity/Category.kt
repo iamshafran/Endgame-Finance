@@ -24,4 +24,11 @@ data class Category(
     @ColumnInfo(name = "parent_id") val parentId: String? = null,
     /** 'expense' or 'income' */
     @ColumnInfo(name = "type") val type: String,
-)
+    /** Key into IconCatalog; NULL = no icon chosen. Added in DB v2. */
+    @ColumnInfo(name = "icon") val icon: String? = null,
+) {
+    companion object {
+        const val TYPE_EXPENSE = "expense"
+        const val TYPE_INCOME = "income"
+    }
+}

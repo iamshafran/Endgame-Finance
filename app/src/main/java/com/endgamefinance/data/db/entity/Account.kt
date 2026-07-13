@@ -14,4 +14,10 @@ data class Account(
     @ColumnInfo(name = "credit_limit") val creditLimit: Long? = null,
     @ColumnInfo(name = "currency", defaultValue = "USD") val currency: String = "USD",
     @ColumnInfo(name = "is_active", defaultValue = "1") val isActive: Boolean = true,
-)
+) {
+    companion object {
+        const val TYPE_ASSET = "asset"
+        const val TYPE_LIABILITY = "liability"
+        const val TYPE_INVESTMENT = "investment"
+    }
+}

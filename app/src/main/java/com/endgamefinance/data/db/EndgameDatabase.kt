@@ -3,6 +3,9 @@ package com.endgamefinance.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.endgamefinance.data.db.dao.AccountDao
+import com.endgamefinance.data.db.dao.CategoryDao
+import com.endgamefinance.data.db.dao.TagDao
+import com.endgamefinance.data.db.dao.TransactionDao
 import com.endgamefinance.data.db.entity.Account
 import com.endgamefinance.data.db.entity.Budget
 import com.endgamefinance.data.db.entity.Category
@@ -17,6 +20,8 @@ import com.endgamefinance.data.db.entity.TransactionSplit
 import com.endgamefinance.data.db.entity.TransactionTag
 
 @Database(
+    version = 2,
+    exportSchema = true,
     entities = [
         Account::class,
         Category::class,
@@ -31,9 +36,10 @@ import com.endgamefinance.data.db.entity.TransactionTag
         EnvelopeTransfer::class,
         NetWorthSnapshot::class,
     ],
-    version = 1,
-    exportSchema = true,
 )
 abstract class EndgameDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
+    abstract fun transactionDao(): TransactionDao
+    abstract fun categoryDao(): CategoryDao
+    abstract fun tagDao(): TagDao
 }

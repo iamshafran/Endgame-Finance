@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -19,6 +21,8 @@ import com.endgamefinance.ui.theme.Spacing
 @Composable
 fun MoreScreen(
     onOpenAccounts: () -> Unit,
+    onOpenCategories: () -> Unit,
+    onOpenTags: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -40,6 +44,32 @@ fun MoreScreen(
                 )
             },
             modifier = Modifier.clickable(onClick = onOpenAccounts),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Categories") },
+            supportingContent = { Text("Organize spending with nested categories") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.List,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenCategories),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Tags") },
+            supportingContent = { Text("Cross-cutting labels like #vacation or #reimbursable") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenTags),
         )
         HorizontalDivider()
     }
