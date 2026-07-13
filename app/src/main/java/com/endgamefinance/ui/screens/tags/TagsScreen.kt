@@ -82,11 +82,7 @@ fun TagsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
-                Text(
-                    text = "Tags",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(Spacing.md),
-                )
+                com.endgamefinance.ui.components.ScreenTitle("Tags")
             }
             items(tags, key = { it.id }) { tag ->
                 Row(
@@ -101,11 +97,13 @@ fun TagsScreen(
             }
             if (tags.isEmpty()) {
                 item {
-                    Text(
-                        text = "No tags yet. Tags cut across categories — e.g. #vacation2026 or #reimbursable.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.lg),
+                    com.endgamefinance.ui.components.EmptyState(
+                        icon = Icons.Filled.Add,
+                        title = "No tags yet",
+                        body = "Tags cut across categories — #vacation2026 or #reimbursable " +
+                            "can label any transaction regardless of what it was for.",
+                        actionLabel = "Create a tag",
+                        onAction = { showNewDialog = true },
                     )
                 }
             }

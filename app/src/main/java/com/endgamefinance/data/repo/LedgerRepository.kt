@@ -155,6 +155,27 @@ class LedgerRepository(private val db: EndgameDatabase) {
         }
     }
 
+    /** Reconciliation check-off: flips is_cleared with an audit row, touching nothing else. */
+    suspend fun setCleared(transactionId: String, cleared: Boolean) {
+        db.withTransaction {
+            val old = db.transactionDao().getById(transactionId) ?: return@withTransaction
+            if (old.isCleared == cleared) return@withTransaction
+            db.transactionDao().updateTransaction(old.copy(isCleared = cleared))
+            db.transactionDao().insertAuditRows(
+                listOf(
+                    TransactionAudit(
+                        id = UUID.randomUUID().toString(),
+                        transactionId = transactionId,
+                        fieldName = "is_cleared",
+                        oldValue = if (old.isCleared) "cleared" else "uncleared",
+                        newValue = if (cleared) "cleared" else "uncleared",
+                        changedAt = System.currentTimeMillis(),
+                    ),
+                ),
+            )
+        }
+    }
+
     /** Hard delete after user confirmation; cascades take splits/tags/audit with it. */
     suspend fun deleteTransaction(transactionId: String) =
         db.transactionDao().deleteById(transactionId)

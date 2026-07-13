@@ -125,12 +125,11 @@ private fun BudgetsTab(
         }
         if (state.rows.isEmpty()) {
             item(key = "empty") {
-                Text(
-                    text = "No expense categories yet — create some under More → Categories, " +
-                        "then set monthly amounts here.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(Spacing.lg),
+                com.endgamefinance.ui.components.EmptyState(
+                    icon = androidx.compose.material.icons.Icons.Filled.Category,
+                    title = "Nothing to budget yet",
+                    body = "Budgets attach to expense categories. Create categories under " +
+                        "More → Categories, then set monthly amounts here.",
                 )
             }
         }

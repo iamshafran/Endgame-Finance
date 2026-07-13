@@ -6,6 +6,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/**
+ * Tabular figures: every digit takes the same width, so money columns align
+ * vertically. Apply to ANY text that renders an amount in a list.
+ */
+val TextStyle.tabular: TextStyle
+    get() = copy(fontFeatureSettings = "tnum")
+
 // System font, Material 3 scale. Monetary figures get tabular-feeling weights;
 // tabular-numbers formatting itself is applied at the call site.
 val EndgameTypography = Typography(

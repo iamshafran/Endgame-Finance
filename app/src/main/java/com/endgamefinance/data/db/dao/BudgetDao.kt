@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 data class CategorySpend(val categoryId: String, val spent: Long)
 data class CategoryMonthSpend(val categoryId: String, val month: String, val spent: Long)
 data class DaySpend(val day: String, val spent: Long)
+data class MonthAmount(val month: String, val total: Long)
 
 @Dao
 interface BudgetDao {
@@ -83,6 +84,36 @@ interface BudgetDao {
         """,
     )
     fun observeSpendByDay(startMs: Long, endMs: Long): Flow<List<DaySpend>>
+
+    /** Income per month since [startMs] — same definition as observeIncome. */
+    @Query(
+        """
+        SELECT strftime('%Y-%m', t.timestamp / 1000, 'unixepoch', 'localtime') AS month,
+               SUM(s.amount) AS total
+        FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.type = 'income'
+          AND t.payee != 'Starting Balance'
+          AND t.timestamp >= :startMs
+        GROUP BY month
+        """,
+    )
+    fun observeIncomeByMonth(startMs: Long): Flow<List<MonthAmount>>
+
+    /** Spending per month since [startMs] — same definition as observeSpendByDay. */
+    @Query(
+        """
+        SELECT strftime('%Y-%m', t.timestamp / 1000, 'unixepoch', 'localtime') AS month,
+               SUM(s.amount) AS total
+        FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.timestamp >= :startMs
+          AND t.payee != 'Starting Balance'
+          AND (t.type = 'expense' OR (t.type = 'transfer' AND s.category_id IS NOT NULL))
+        GROUP BY month
+        """,
+    )
+    fun observeSpendingByMonth(startMs: Long): Flow<List<MonthAmount>>
 
     /** Uncategorized expense total in [startMs, endMs) — reports must not lose it. */
     @Query(

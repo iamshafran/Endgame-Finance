@@ -1,8 +1,13 @@
 package com.endgamefinance.ui.screens.ledger
 
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.DatePicker
@@ -41,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -56,6 +63,7 @@ import com.endgamefinance.ui.components.DropdownField
 import com.endgamefinance.ui.components.IconCatalog
 import com.endgamefinance.ui.theme.LocalMoneyColors
 import com.endgamefinance.ui.theme.Spacing
+import com.endgamefinance.ui.theme.tabular
 import com.endgamefinance.util.Money
 import java.time.Instant
 import java.time.LocalDate
@@ -69,6 +77,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class LedgerFilters(
     val accountId: String? = null,
@@ -86,7 +95,19 @@ data class LedgerFilters(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LedgerViewModel(db: EndgameDatabase) : ViewModel() {
+class LedgerViewModel(private val db: EndgameDatabase) : ViewModel() {
+
+    private val repo = com.endgamefinance.data.repo.LedgerRepository(db)
+
+    /** Swipe-right action: audited cleared toggle. */
+    fun toggleCleared(item: TransactionListItem) {
+        viewModelScope.launch { repo.setCleared(item.id, !item.isCleared) }
+    }
+
+    /** Swipe-left action, after the confirm dialog. */
+    fun delete(transactionId: String) {
+        viewModelScope.launch { repo.deleteTransaction(transactionId) }
+    }
 
     private val _filters = MutableStateFlow(LedgerFilters())
     val filters: StateFlow<LedgerFilters> = _filters.asStateFlow()
@@ -123,7 +144,7 @@ class LedgerViewModel(db: EndgameDatabase) : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LedgerScreen(
     onAddTransaction: () -> Unit,
@@ -139,6 +160,7 @@ fun LedgerScreen(
     var minText by remember { mutableStateOf("") }
     var maxText by remember { mutableStateOf("") }
     var datePickTarget by remember { mutableStateOf<String?>(null) } // "start" | "end"
+    var pendingDelete by remember { mutableStateOf<TransactionListItem?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -273,23 +295,36 @@ fun LedgerScreen(
                 Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate()
             }
             byDay.forEach { (day, dayItems) ->
-                item(key = "day_$day") {
+                stickyHeader(key = "day_$day") {
                     DayHeader(day = day, items = dayItems)
                 }
                 items(dayItems, key = { it.id }) { item ->
-                    TransactionRow(item, onClick = { onOpenTransaction(item.id) })
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
+                    SwipeableTransactionRow(
+                        item = item,
+                        onClick = { onOpenTransaction(item.id) },
+                        onToggleCleared = { viewModel.toggleCleared(item) },
+                        onRequestDelete = { pendingDelete = item },
+                    )
                 }
             }
             if (transactions.isEmpty()) {
                 item(key = "empty") {
-                    Text(
-                        text = if (filters.isActive) "No transactions match these filters."
-                        else "No transactions yet. Tap + to record your first one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.lg),
-                    )
+                    if (filters.isActive) {
+                        com.endgamefinance.ui.components.EmptyState(
+                            icon = Icons.Filled.Search,
+                            title = "Nothing matches",
+                            body = "No transactions fit these filters. Loosen one, or clear them all.",
+                        )
+                    } else {
+                        com.endgamefinance.ui.components.EmptyState(
+                            icon = Icons.Filled.Add,
+                            title = "Your ledger is empty",
+                            body = "Every expense, income, and transfer you record lands here, " +
+                                "grouped by day with running balances.",
+                            actionLabel = "Add your first transaction",
+                            onAction = onAddTransaction,
+                        )
+                    }
                 }
             }
         }
@@ -301,6 +336,30 @@ fun LedgerScreen(
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add transaction")
         }
+    }
+
+    pendingDelete?.let { item ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete \"${item.payee}\"?") },
+            text = {
+                Text(
+                    "This permanently removes the transaction and its history, " +
+                        "and re-derives account balances. This cannot be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.delete(item.id)
+                        pendingDelete = null
+                    },
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
     }
 
     datePickTarget?.let { target ->
@@ -363,6 +422,7 @@ private fun DayHeader(day: LocalDate, items: List<TransactionListItem>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -370,17 +430,85 @@ private fun DayHeader(day: LocalDate, items: List<TransactionListItem>) {
         Text(
             text = label,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = (if (net > 0) "+" else "") + Money.format(net),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium.tabular,
             color = when {
                 net > 0 -> moneyColors.gain
                 net < 0 -> moneyColors.loss
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
+    }
+}
+
+/** Swipe right = toggle cleared (snaps back); swipe left = delete after confirm. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableTransactionRow(
+    item: TransactionListItem,
+    onClick: () -> Unit,
+    onToggleCleared: () -> Unit,
+    onRequestDelete: () -> Unit,
+) {
+    val moneyColors = LocalMoneyColors.current
+    val state = androidx.compose.material3.rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd ->
+                    onToggleCleared()
+                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart ->
+                    onRequestDelete()
+                else -> Unit
+            }
+            false // always snap back; delete happens via the confirm dialog
+        },
+    )
+    androidx.compose.material3.SwipeToDismissBox(
+        state = state,
+        backgroundContent = {
+            val direction = state.dismissDirection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        when (direction) {
+                            androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd ->
+                                moneyColors.gain.copy(alpha = 0.25f)
+                            androidx.compose.material3.SwipeToDismissBoxValue.EndToStart ->
+                                moneyColors.loss.copy(alpha = 0.25f)
+                            else -> MaterialTheme.colorScheme.surface
+                        },
+                    )
+                    .padding(horizontal = Spacing.md),
+                horizontalArrangement =
+                if (direction == androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd)
+                    Arrangement.Start else Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (direction == androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd) {
+                    Icon(Icons.Filled.Check, contentDescription = "Toggle cleared",
+                        tint = moneyColors.gain)
+                    Text(
+                        if (item.isCleared) " Unclear" else " Clear",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                } else if (direction ==
+                    androidx.compose.material3.SwipeToDismissBoxValue.EndToStart
+                ) {
+                    Text("Delete ", style = MaterialTheme.typography.labelLarge)
+                    Icon(Icons.Filled.Close, contentDescription = "Delete",
+                        tint = moneyColors.loss)
+                }
+            }
+        },
+    ) {
+        // Solid surface so row content covers the action background at rest
+        Row(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+            TransactionRow(item, onClick = onClick)
+        }
     }
 }
 
@@ -405,13 +533,37 @@ fun TransactionRow(item: TransactionListItem, onClick: () -> Unit = {}) {
             item.splitCount > 1 -> Icons.AutoMirrored.Filled.CallSplit
             else -> IconCatalog.get(item.categoryIcon) ?: Icons.Filled.Category
         }
-        Icon(
-            imageVector = leadingIcon,
-            contentDescription = null,
-            tint = if (item.type != "transfer" && IconCatalog.get(item.categoryIcon) != null)
-                MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outline,
-        )
+        // Tonal circle gives rows a scannable left rail; falls back to the
+        // payee's initial when there's no category icon (Gmail-style)
+        val hasIcon = item.type == "transfer" || item.splitCount > 1 ||
+            IconCatalog.get(item.categoryIcon) != null
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (hasIcon) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = if (item.type != "transfer" &&
+                        IconCatalog.get(item.categoryIcon) != null
+                    ) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            } else {
+                Text(
+                    text = item.payee.trim().take(1).uppercase().ifEmpty { "?" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -419,14 +571,6 @@ fun TransactionRow(item: TransactionListItem, onClick: () -> Unit = {}) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (item.isCleared) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Cleared",
-                        tint = moneyColors.gain,
-                        modifier = Modifier.padding(start = Spacing.xs),
-                    )
-                }
                 if (item.isShared) {
                     Text(
                         text = " ⇄",
@@ -447,22 +591,42 @@ fun TransactionRow(item: TransactionListItem, onClick: () -> Unit = {}) {
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = amountText,
-                style = MaterialTheme.typography.titleMedium,
-                color = amountColor,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = amountText,
+                    style = MaterialTheme.typography.titleMedium.tabular,
+                    color = amountColor,
+                )
+                // Slot is always reserved so amounts stay column-aligned
+                Box(
+                    modifier = Modifier
+                        .padding(start = Spacing.xs)
+                        .size(14.dp),
+                ) {
+                    if (item.isCleared) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = "Cleared",
+                            tint = moneyColors.gain,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            }
+            // End padding matches the tick slot so balances align under the amounts
             Text(
                 text = "${item.accountName} · ${Money.format(item.runningBalance)}",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelMedium.tabular,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 18.dp),
             )
             // Both sides of a transfer/loan payment show their post-transaction balance
             if (item.toAccountName != null && item.toRunningBalance != null) {
                 Text(
                     text = "${item.toAccountName} · ${Money.format(item.toRunningBalance)}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelMedium.tabular,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 18.dp),
                 )
             }
         }

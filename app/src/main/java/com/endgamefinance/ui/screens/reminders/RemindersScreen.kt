@@ -44,6 +44,7 @@ import com.endgamefinance.data.db.entity.Reminder
 import com.endgamefinance.ui.screens.PlaceholderScreen
 import com.endgamefinance.ui.theme.LocalMoneyColors
 import com.endgamefinance.ui.theme.Spacing
+import com.endgamefinance.ui.theme.tabular
 import com.endgamefinance.util.Money
 import java.text.DateFormat
 import java.util.Date
@@ -106,6 +107,11 @@ private fun BillsTab(
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (state.due.isNotEmpty() || state.upcoming.isNotEmpty()) {
+                item(key = "planned_totals") {
+                    PlannedTotalsCard(state)
+                }
+            }
             if (suggestions.isNotEmpty()) {
                 item(key = "suggestions_header") {
                     SectionHeader("Looks recurring", MaterialTheme.colorScheme.tertiary)
@@ -149,14 +155,15 @@ private fun BillsTab(
                     HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
                 }
             }
-            if (state.due.isEmpty() && state.upcoming.isEmpty()) {
+            if (state.due.isEmpty() && state.upcoming.isEmpty() && suggestions.isEmpty()) {
                 item(key = "empty") {
-                    Text(
-                        "No bills or reminders yet. Tap + to add recurring bills — " +
-                            "they stay pending here until posted to the ledger.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.lg),
+                    com.endgamefinance.ui.components.EmptyState(
+                        icon = Icons.Filled.Add,
+                        title = "No bills or reminders",
+                        body = "Recurring bills stay pending here until posted — and can " +
+                            "auto-post and notify you, even with the app closed.",
+                        actionLabel = "Add a reminder",
+                        onAction = onAddReminder,
                     )
                 }
             }
@@ -191,6 +198,57 @@ private fun BillsTab(
             },
             onDismiss = { postTarget = null },
         )
+    }
+}
+
+@Composable
+private fun PlannedTotalsCard(state: RemindersUiState) {
+    val moneyColors = LocalMoneyColors.current
+    androidx.compose.material3.Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+    ) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Text("Planned", style = MaterialTheme.typography.titleMedium)
+            TotalRow("Bills & expenses", "−" + Money.format(state.plannedExpenses), moneyColors.loss)
+            TotalRow("Expected income", "+" + Money.format(state.plannedIncome), moneyColors.gain)
+            if (state.plannedTransfers > 0) {
+                TotalRow(
+                    "Transfers & repayments",
+                    Money.format(state.plannedTransfers),
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TotalRow(
+                "Net per cycle",
+                (if (state.plannedNet > 0) "+" else "") + Money.format(state.plannedNet),
+                if (state.plannedNet >= 0) moneyColors.gain else moneyColors.loss,
+            )
+            if (state.variableCount > 0) {
+                Text(
+                    "${state.variableCount} variable-amount reminder" +
+                        (if (state.variableCount > 1) "s" else "") + " not counted",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TotalRow(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(value, style = MaterialTheme.typography.bodyMedium.tabular, color = color)
     }
 }
 

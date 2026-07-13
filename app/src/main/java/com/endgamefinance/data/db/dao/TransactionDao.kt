@@ -183,6 +183,19 @@ interface TransactionDao {
     )
     fun observeAuditFor(transactionId: String): Flow<List<TransactionAudit>>
 
+    /** Most-used categories in the trailing window — powers quick-pick chips. */
+    @Query(
+        """
+        SELECT s.category_id FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE s.category_id IS NOT NULL AND t.timestamp >= :sinceMs
+        GROUP BY s.category_id
+        ORDER BY COUNT(*) DESC
+        LIMIT 8
+        """,
+    )
+    fun observeRecentCategoryIds(sinceMs: Long): Flow<List<String>>
+
     /** Feed for the recurring-pattern detector: real spending/income events only. */
     @Query(
         """

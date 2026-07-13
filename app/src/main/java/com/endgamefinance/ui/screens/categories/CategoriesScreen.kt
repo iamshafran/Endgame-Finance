@@ -66,21 +66,19 @@ fun CategoriesScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
-                Text(
-                    text = "Categories",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(Spacing.md),
-                )
+                com.endgamefinance.ui.components.ScreenTitle("Categories")
             }
             section("Expense", state.expense) { dialogTarget = CategoryDialogTarget.Edit(it) }
             section("Income", state.income) { dialogTarget = CategoryDialogTarget.Edit(it) }
             if (state.expense.isEmpty() && state.income.isEmpty()) {
                 item {
-                    Text(
-                        text = "No categories yet. Tap + to create one (e.g. Food, then Groceries under it).",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.lg),
+                    com.endgamefinance.ui.components.EmptyState(
+                        icon = Icons.Filled.Category,
+                        title = "No categories yet",
+                        body = "Categories organize your spending — create Food, then " +
+                            "Groceries nested under it. Budgets and reports build on these.",
+                        actionLabel = "Create a category",
+                        onAction = { dialogTarget = CategoryDialogTarget.New },
                     )
                 }
             }

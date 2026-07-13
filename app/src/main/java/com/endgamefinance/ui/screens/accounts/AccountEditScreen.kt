@@ -43,6 +43,7 @@ private val typeChoices = listOf(
 fun AccountEditScreen(
     accountId: String?,
     onDone: () -> Unit,
+    onReconcile: (String) -> Unit = {},
     viewModel: AccountsViewModel =
         viewModel(factory = AccountsViewModel.factory(LocalContext.current)),
 ) {
@@ -207,6 +208,12 @@ fun AccountEditScreen(
         }
 
         if (isEditing) {
+            OutlinedButton(
+                onClick = { accountId?.let(onReconcile) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Reconcile against a statement")
+            }
             OutlinedButton(
                 onClick = {
                     loaded?.let { viewModel.archiveAccount(it) }

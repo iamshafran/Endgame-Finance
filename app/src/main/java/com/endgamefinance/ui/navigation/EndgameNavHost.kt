@@ -32,9 +32,10 @@ import com.endgamefinance.ui.screens.categories.CategoriesScreen
 import com.endgamefinance.ui.screens.dashboard.DashboardScreen
 import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
 import com.endgamefinance.ui.screens.ledger.LedgerScreen
+import com.endgamefinance.ui.screens.reconcile.ReconcileScreen
 import com.endgamefinance.ui.screens.reminders.ReminderEditScreen
 import com.endgamefinance.ui.screens.reports.ReportsScreen
-import com.endgamefinance.ui.screens.settings.SecurityScreen
+import com.endgamefinance.ui.screens.settings.SettingsScreen
 import com.endgamefinance.ui.screens.reminders.RemindersScreen
 import com.endgamefinance.ui.screens.tags.TagsScreen
 
@@ -64,8 +65,9 @@ fun EndgameApp() {
                         currentRoute == Routes.CATEGORIES ||
                         currentRoute == Routes.TAGS ||
                         currentRoute == Routes.REPORTS ||
-                        currentRoute == Routes.SECURITY ||
-                        currentRoute?.startsWith(Routes.ACCOUNT_EDIT) == true
+                        currentRoute == Routes.SETTINGS ||
+                        currentRoute?.startsWith(Routes.ACCOUNT_EDIT) == true ||
+                        currentRoute?.startsWith(Routes.RECONCILE) == true
                     val selected = currentRoute == tab.route ||
                         (tab.route == Routes.MORE && moreSubRoutes) ||
                         (tab.route == Routes.LEDGER && currentRoute == Routes.SEARCH) ||
@@ -95,11 +97,32 @@ fun EndgameApp() {
             navController = navController,
             startDestination = Routes.DASHBOARD,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                androidx.compose.animation.fadeIn(
+                    animationSpec = androidx.compose.animation.core.tween(220),
+                )
+            },
+            exitTransition = {
+                androidx.compose.animation.fadeOut(
+                    animationSpec = androidx.compose.animation.core.tween(160),
+                )
+            },
+            popEnterTransition = {
+                androidx.compose.animation.fadeIn(
+                    animationSpec = androidx.compose.animation.core.tween(220),
+                )
+            },
+            popExitTransition = {
+                androidx.compose.animation.fadeOut(
+                    animationSpec = androidx.compose.animation.core.tween(160),
+                )
+            },
         ) {
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
                     onSearch = { navController.navigate(Routes.SEARCH) },
-                    onOpenSecurity = { navController.navigate(Routes.SECURITY) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
                 )
             }
             composable(Routes.SEARCH) {
@@ -166,11 +189,11 @@ fun EndgameApp() {
                     onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
                     onOpenTags = { navController.navigate(Routes.TAGS) },
                     onOpenReports = { navController.navigate(Routes.REPORTS) },
-                    onOpenSecurity = { navController.navigate(Routes.SECURITY) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
             composable(Routes.REPORTS) { ReportsScreen() }
-            composable(Routes.SECURITY) { SecurityScreen() }
+            composable(Routes.SETTINGS) { SettingsScreen() }
             composable(Routes.CATEGORIES) { CategoriesScreen() }
             composable(Routes.TAGS) { TagsScreen() }
             composable(Routes.ACCOUNTS) {
@@ -194,6 +217,19 @@ fun EndgameApp() {
                 AccountEditScreen(
                     accountId = entry.arguments?.getString("accountId"),
                     onDone = { navController.popBackStack() },
+                    onReconcile = { id ->
+                        navController.navigate("${Routes.RECONCILE}/$id")
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.RECONCILE}/{accountId}",
+                arguments = listOf(
+                    navArgument("accountId") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                ReconcileScreen(
+                    accountId = requireNotNull(entry.arguments?.getString("accountId")),
                 )
             }
         }

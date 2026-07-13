@@ -24,6 +24,13 @@ data class DashboardUiState(
     val dueBillCount: Int = 0,
 )
 
+data class TopCategory(
+    val displayName: String,
+    val icon: String?,
+    val amount: Long,
+    val share: Float,
+)
+
 class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
 
     private val budgetRepo = BudgetRepository(db)
@@ -31,6 +38,49 @@ class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
     /** Trend data — snapshots only, never live-derived (acceptance criterion). */
     val snapshots = db.netWorthSnapshotDao().observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Last 6 months of income vs spending, zero-filled for silent months. */
+    val cashFlow: StateFlow<List<com.endgamefinance.ui.components.MonthCashFlow>> = run {
+        val monthsWindow = (5 downTo 0).map { YearMonth.now().minusMonths(it.toLong()) }
+        val startMs = MonthUtil.startMs(monthsWindow.first())
+        combine(
+            db.budgetDao().observeIncomeByMonth(startMs),
+            db.budgetDao().observeSpendingByMonth(startMs),
+        ) { income, spending ->
+            val incomeByMonth = income.associateBy({ it.month }, { it.total })
+            val spendingByMonth = spending.associateBy({ it.month }, { it.total })
+            monthsWindow.map { ym ->
+                val key = MonthUtil.key(ym)
+                com.endgamefinance.ui.components.MonthCashFlow(
+                    label = ym.format(java.time.format.DateTimeFormatter.ofPattern("MMM")),
+                    income = incomeByMonth[key] ?: 0L,
+                    spending = spendingByMonth[key] ?: 0L,
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }
+
+    /** Top 5 spending categories this month, with share of the month's total. */
+    val topCategories: StateFlow<List<TopCategory>> = run {
+        val now = YearMonth.now()
+        combine(
+            db.budgetDao().observeSpentByCategory(MonthUtil.startMs(now), MonthUtil.endMs(now)),
+            db.categoryDao().observeAll(),
+        ) { spends, categories ->
+            val choices = com.endgamefinance.data.db.model.categoryChoices(categories)
+                .associateBy { it.id }
+            val iconById = categories.associateBy({ it.id }, { it.icon })
+            val total = spends.sumOf { it.spent }
+            spends.sortedByDescending { it.spent }.take(5).map { spend ->
+                TopCategory(
+                    displayName = choices[spend.categoryId]?.displayName ?: "(deleted)",
+                    icon = iconById[spend.categoryId],
+                    amount = spend.spent,
+                    share = if (total > 0) spend.spent.toFloat() / total else 0f,
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }
 
     val uiState: StateFlow<DashboardUiState> =
         combine(

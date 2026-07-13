@@ -1,16 +1,27 @@
 package com.endgamefinance.ui.screens.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.endgamefinance.ui.components.IconCatalog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.repo.SafeToSpend
 import com.endgamefinance.ui.components.NetWorthChart
 import com.endgamefinance.ui.theme.LocalMoneyColors
+import com.endgamefinance.ui.theme.tabular
 import com.endgamefinance.ui.theme.Spacing
 import com.endgamefinance.util.Money
 import java.text.DateFormat
@@ -37,13 +49,15 @@ import java.util.Date
 @Composable
 fun DashboardScreen(
     onSearch: () -> Unit,
-    onOpenSecurity: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onAddTransaction: () -> Unit,
     viewModel: DashboardViewModel =
         viewModel(factory = DashboardViewModel.factory(LocalContext.current)),
 ) {
     val state by viewModel.uiState.collectAsState()
     val moneyColors = LocalMoneyColors.current
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,6 +106,94 @@ fun DashboardScreen(
             }
         }
 
+        val cashFlow by viewModel.cashFlow.collectAsState()
+        if (cashFlow.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            ) {
+                Column {
+                    Text(
+                        "Cash flow · last 6 months",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(
+                            start = Spacing.md, end = Spacing.md,
+                            top = Spacing.md, bottom = Spacing.xs,
+                        ),
+                    )
+                    com.endgamefinance.ui.components.CashFlowChart(months = cashFlow)
+                    androidx.compose.foundation.layout.Spacer(
+                        modifier = Modifier.padding(bottom = Spacing.sm),
+                    )
+                }
+            }
+        }
+
+        val topCategories by viewModel.topCategories.collectAsState()
+        if (topCategories.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            ) {
+                Column(modifier = Modifier.padding(Spacing.md)) {
+                    Text(
+                        "Top spending this month",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = Spacing.sm),
+                    )
+                    topCategories.forEach { category ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = Spacing.xs),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = IconCatalog.get(category.icon)
+                                        ?: Icons.Filled.Category,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .padding(end = Spacing.sm)
+                                        .size(20.dp),
+                                )
+                                Text(category.displayName,
+                                    style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Text(
+                                "${Money.format(category.amount)} · " +
+                                    "${(category.share * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodyMedium.tabular,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    RoundedCornerShape(3.dp),
+                                ),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(category.share.coerceIn(0f, 1f))
+                                    .height(5.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(3.dp),
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         val context = LocalContext.current
         val nudgeDue = remember { com.endgamefinance.security.BackupPrefs.isNudgeDue(context) }
         if (nudgeDue) {
@@ -102,7 +204,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                    .clickable(onClick = onOpenSecurity),
+                    .clickable(onClick = onOpenSettings),
                 colors = androidx.compose.material3.CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 ),
@@ -136,6 +238,20 @@ fun DashboardScreen(
                 )
             }
         }
+        // Breathing room so the FAB never covers the last card
+        Spacer(modifier = Modifier.height(72.dp))
+    }
+    androidx.compose.material3.FloatingActionButton(
+        onClick = onAddTransaction,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(Spacing.md),
+    ) {
+        Icon(
+            androidx.compose.material.icons.Icons.Filled.Add,
+            contentDescription = "Add transaction",
+        )
+    }
     }
 }
 
@@ -144,22 +260,27 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
     val moneyColors = LocalMoneyColors.current
     var expanded by remember { mutableStateOf(false) }
 
+    // Hero treatment: the app's most important number owns the strongest surface
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .clickable { expanded = !expanded },
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Text(
                 text = "Safe to spend",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Text(
                 text = Money.format(sts.amountCents),
-                style = MaterialTheme.typography.displaySmall,
-                color = if (sts.amountCents >= 0) moneyColors.gain else moneyColors.loss,
+                style = MaterialTheme.typography.displaySmall.tabular,
+                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.error,
             )
             Text(
                 text = sts.nextIncomeDate?.let {
@@ -167,7 +288,7 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(it))
                 } ?: "over the next 30 days (no income scheduled)",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
             )
 
             if (expanded) {

@@ -46,7 +46,14 @@ data class ReminderUi(
 data class RemindersUiState(
     val due: List<ReminderUi> = emptyList(),
     val upcoming: List<ReminderUi> = emptyList(),
-)
+    /** Totals across ALL reminders' next occurrences (fixed amounts only). */
+    val plannedExpenses: Long = 0,
+    val plannedIncome: Long = 0,
+    val plannedTransfers: Long = 0,
+    val variableCount: Int = 0,
+) {
+    val plannedNet: Long get() = plannedIncome - plannedExpenses
+}
 
 enum class Momentum { NONE, LOW, NORMAL, HIGH }
 
@@ -248,6 +255,14 @@ class RemindersViewModel(
             RemindersUiState(
                 due = ui.filter { it.isDue },
                 upcoming = ui.filter { !it.isDue },
+                plannedExpenses = ui.filter {
+                    it.toAccountName == null && !it.isIncome
+                }.sumOf { it.reminder.amount ?: 0L },
+                plannedIncome = ui.filter { it.isIncome }
+                    .sumOf { it.reminder.amount ?: 0L },
+                plannedTransfers = ui.filter { it.toAccountName != null }
+                    .sumOf { it.reminder.amount ?: 0L },
+                variableCount = ui.count { it.reminder.amount == null },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RemindersUiState())
 

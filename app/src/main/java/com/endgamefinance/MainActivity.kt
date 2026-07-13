@@ -6,13 +6,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.endgamefinance.security.AppLock
+import com.endgamefinance.security.AppSettings
 import com.endgamefinance.ui.lock.LockScreen
 import com.endgamefinance.ui.navigation.EndgameApp
+import com.endgamefinance.ui.onboarding.OnboardingGate
 import com.endgamefinance.ui.theme.EndgameTheme
 
 // FragmentActivity (not ComponentActivity) because androidx.biometric requires it
@@ -24,12 +28,18 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EndgameTheme {
+            val themeMode by AppSettings.get(this).themeMode.collectAsState()
+            val darkTheme = when (themeMode) {
+                AppSettings.THEME_LIGHT -> false
+                AppSettings.THEME_DARK -> true
+                else -> isSystemInDarkTheme()
+            }
+            EndgameTheme(darkTheme = darkTheme) {
                 val isLocked by locked
                 if (isLocked) {
                     LockScreen(onUnlock = ::showUnlockPrompt)
                 } else {
-                    EndgameApp()
+                    OnboardingGate { EndgameApp() }
                 }
             }
         }

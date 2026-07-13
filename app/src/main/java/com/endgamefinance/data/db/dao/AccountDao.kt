@@ -58,6 +58,26 @@ interface AccountDao {
     @Query("SELECT accounts.*, $BALANCE_SUBQUERY AS balance FROM accounts")
     suspend fun allWithBalancesOnce(): List<AccountWithBalance>
 
+    /** Balance counting CLEARED transactions only — the figure a bank statement shows. */
+    @Query(
+        """
+        SELECT COALESCE((
+            SELECT SUM(CASE
+                WHEN t.type = 'income'   AND t.account_id    = :accountId THEN s.amount
+                WHEN t.type = 'expense'  AND t.account_id    = :accountId THEN -s.amount
+                WHEN t.type = 'transfer' AND t.account_id    = :accountId THEN -s.amount
+                WHEN t.type = 'transfer' AND t.to_account_id = :accountId
+                    THEN (CASE WHEN s.category_id IS NULL THEN s.amount ELSE 0 END)
+                ELSE 0 END)
+            FROM transactions t
+            JOIN transaction_splits s ON s.transaction_id = t.id
+            WHERE (t.account_id = :accountId OR t.to_account_id = :accountId)
+              AND t.is_cleared = 1
+        ), 0)
+        """,
+    )
+    fun observeClearedBalance(accountId: String): Flow<Long>
+
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getById(id: String): Account?
 

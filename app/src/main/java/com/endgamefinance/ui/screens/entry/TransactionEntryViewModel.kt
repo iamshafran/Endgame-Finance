@@ -34,9 +34,36 @@ data class LoadedTransaction(
     val tagIds: List<String>,
 )
 
-class TransactionEntryViewModel(private val db: EndgameDatabase) : ViewModel() {
+class TransactionEntryViewModel(
+    private val db: EndgameDatabase,
+    private val appContext: Context,
+) : ViewModel() {
 
     private val repo = LedgerRepository(db)
+    private val prefs = appContext.getSharedPreferences("entry_prefs", Context.MODE_PRIVATE)
+
+    /** The account last posted to — the default for new entries. */
+    fun lastUsedAccountId(): String? = prefs.getString("last_account_id", null)
+
+    private fun rememberAccount(accountId: String) {
+        prefs.edit().putString("last_account_id", accountId).apply()
+    }
+
+    /** Category ids most used in the last 90 days, for one-tap chips. */
+    val recentCategoryIds = db.transactionDao()
+        .observeRecentCategoryIds(System.currentTimeMillis() - 90L * 86_400_000L)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Inline tag creation from the entry form. */
+    fun createTag(name: String, onCreated: (String) -> Unit) {
+        viewModelScope.launch {
+            val id = UUID.randomUUID().toString()
+            db.tagDao().insert(
+                com.endgamefinance.data.db.entity.Tag(id = id, name = name.trim()),
+            )
+            onCreated(id)
+        }
+    }
 
     val accounts = db.accountDao().observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -140,6 +167,7 @@ class TransactionEntryViewModel(private val db: EndgameDatabase) : ViewModel() {
             } else {
                 repo.createTransaction(entity, splitEntities, tagIds)
             }
+            rememberAccount(accountId)
             onSaved()
         }
     }
@@ -193,7 +221,12 @@ class TransactionEntryViewModel(private val db: EndgameDatabase) : ViewModel() {
 
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { TransactionEntryViewModel(DatabaseProvider.get(context)) }
+            initializer {
+                TransactionEntryViewModel(
+                    DatabaseProvider.get(context),
+                    context.applicationContext,
+                )
+            }
         }
     }
 }

@@ -76,11 +76,13 @@ fun AccountsScreen(
             }
             if (state.accounts.isEmpty()) {
                 item(key = "empty") {
-                    Text(
-                        text = "No accounts yet. Tap + to add your first account.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.lg),
+                    com.endgamefinance.ui.components.EmptyState(
+                        icon = Icons.Filled.Add,
+                        title = "No accounts yet",
+                        body = "Accounts are where your money lives — checking, savings, " +
+                            "credit cards, loans. Everything else builds on them.",
+                        actionLabel = "Add an account",
+                        onAction = onAddAccount,
                     )
                 }
             }

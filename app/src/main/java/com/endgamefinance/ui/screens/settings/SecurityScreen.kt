@@ -43,8 +43,9 @@ private val timeoutChoices = listOf(
     15 to "After 15 minutes",
 )
 
+/** App-lock enable + timeout, surfaced from Settings. */
 @Composable
-fun SecurityScreen() {
+fun AppLockSettings() {
     val context = LocalContext.current
     var lockEnabled by remember { mutableStateOf(AppLock.isEnabled(context)) }
     var timeout by remember { mutableStateOf(AppLock.timeoutMinutes(context)) }
@@ -55,66 +56,54 @@ fun SecurityScreen() {
             BiometricManager.BIOMETRIC_SUCCESS
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Text("Security & Backup", style = MaterialTheme.typography.headlineMedium)
-
-        Text("App lock", style = MaterialTheme.typography.titleMedium)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Require unlock", style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    "Biometric or device PIN gates the app. Your data stays " +
-                        "encrypted either way — forgetting your PIN never loses data.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(
-                checked = lockEnabled,
-                enabled = canAuthenticate,
-                onCheckedChange = {
-                    lockEnabled = it
-                    AppLock.setEnabled(context, it)
-                },
-            )
-        }
-        if (!canAuthenticate) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Require unlock", style = MaterialTheme.typography.bodyLarge)
             Text(
-                "Set up a screen lock (PIN/pattern/biometric) in Android settings " +
-                    "to enable the app lock.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
+                "Biometric or device PIN gates the app. Your data stays " +
+                    "encrypted either way — forgetting your PIN never loses data.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (lockEnabled) {
-            DropdownField(
-                label = "Lock after backgrounding",
-                options = timeoutChoices.map { (min, label) -> min.toString() to label },
-                selectedId = timeout.toString(),
-                onSelect = { picked ->
-                    picked?.toIntOrNull()?.let {
-                        timeout = it
-                        AppLock.setTimeoutMinutes(context, it)
-                    }
-                },
-            )
-        }
-
-        BackupSection()
+        Switch(
+            checked = lockEnabled,
+            enabled = canAuthenticate,
+            onCheckedChange = {
+                lockEnabled = it
+                AppLock.setEnabled(context, it)
+            },
+        )
+    }
+    if (!canAuthenticate) {
+        Text(
+            "Set up a screen lock (PIN/pattern/biometric) in Android settings " +
+                "to enable the app lock.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    if (lockEnabled) {
+        DropdownField(
+            label = "Lock after backgrounding",
+            options = timeoutChoices.map { (min, label) -> min.toString() to label },
+            selectedId = timeout.toString(),
+            onSelect = { picked ->
+                picked?.toIntOrNull()?.let {
+                    timeout = it
+                    AppLock.setTimeoutMinutes(context, it)
+                }
+            },
+        )
     }
 }
 
-private val nudgeChoices = listOf(
+/** Backup-reminder interval, surfaced from Settings. */
+val nudgeChoices = listOf(
     0 to "Never remind me",
     7 to "Every 7 days",
     30 to "Every 30 days",
@@ -122,7 +111,24 @@ private val nudgeChoices = listOf(
 )
 
 @Composable
-internal fun BackupSection(
+fun BackupReminderSetting() {
+    val context = LocalContext.current
+    var nudgeDays by remember { mutableStateOf(BackupPrefs.nudgeDays(context)) }
+    DropdownField(
+        label = "Backup reminder",
+        options = nudgeChoices.map { (days, label) -> days.toString() to label },
+        selectedId = nudgeDays.toString(),
+        onSelect = { picked ->
+            picked?.toIntOrNull()?.let {
+                nudgeDays = it
+                BackupPrefs.setNudgeDays(context, it)
+            }
+        },
+    )
+}
+
+@Composable
+fun BackupSection(
     viewModel: SecurityViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
             factory = SecurityViewModel.factory(LocalContext.current),
@@ -131,7 +137,6 @@ internal fun BackupSection(
     val context = LocalContext.current
     val busy by viewModel.busy.collectAsState()
     val message by viewModel.message.collectAsState()
-    var nudgeDays by remember { mutableStateOf(BackupPrefs.nudgeDays(context)) }
     var passwordDialogFor by remember { mutableStateOf<String?>(null) } // "backup" | "restore"
     var pendingPassword by remember { mutableStateOf<CharArray?>(null) }
     var showRestoreWarning by remember { mutableStateOf(false) }
@@ -194,21 +199,9 @@ internal fun BackupSection(
     ) { Text("Export plain CSV (unprotected)") }
     Text(
         "The CSV is readable by anyone with the file — use the encrypted backup " +
-            "for safekeeping.",
+            "for safekeeping. Set the backup reminder in Settings.",
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-
-    DropdownField(
-        label = "Backup reminder",
-        options = nudgeChoices.map { (days, label) -> days.toString() to label },
-        selectedId = nudgeDays.toString(),
-        onSelect = { picked ->
-            picked?.toIntOrNull()?.let {
-                nudgeDays = it
-                BackupPrefs.setNudgeDays(context, it)
-            }
-        },
     )
 
     if (busy) {

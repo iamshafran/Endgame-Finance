@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -212,12 +214,13 @@ fun EnvelopesTab(
         }
         if (state.rows.isEmpty()) {
             item(key = "empty") {
-                Text(
-                    "Envelopes are virtual savings buckets inside your real accounts — " +
-                        "e.g. an Emergency Fund living in Checking.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                com.endgamefinance.ui.components.EmptyState(
+                    icon = Icons.Filled.Star,
+                    title = "No envelopes yet",
+                    body = "Envelopes are virtual savings buckets inside your real " +
+                        "accounts — an Emergency Fund living in Checking is the classic first one.",
+                    actionLabel = "Create an envelope",
+                    onAction = { showNew = true },
                 )
             }
         }

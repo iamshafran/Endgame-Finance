@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,7 +26,7 @@ fun MoreScreen(
     onOpenCategories: () -> Unit,
     onOpenTags: () -> Unit,
     onOpenReports: () -> Unit,
-    onOpenSecurity: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -63,19 +64,6 @@ fun MoreScreen(
         )
         HorizontalDivider()
         ListItem(
-            headlineContent = { Text("Security & Backup") },
-            supportingContent = { Text("App lock, encrypted backups, exports") },
-            leadingContent = {
-                Icon(
-                    imageVector = Icons.Filled.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-            modifier = Modifier.clickable(onClick = onOpenSecurity),
-        )
-        HorizontalDivider()
-        ListItem(
             headlineContent = { Text("Reports") },
             supportingContent = { Text("Date-range and year-over-year spending reports") },
             leadingContent = {
@@ -99,6 +87,19 @@ fun MoreScreen(
                 )
             },
             modifier = Modifier.clickable(onClick = onOpenTags),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Settings") },
+            supportingContent = { Text("Theme, budgeting defaults, about") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenSettings),
         )
         HorizontalDivider()
     }
