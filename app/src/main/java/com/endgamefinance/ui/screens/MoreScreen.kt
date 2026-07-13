@@ -23,6 +23,7 @@ fun MoreScreen(
     onOpenAccounts: () -> Unit,
     onOpenCategories: () -> Unit,
     onOpenTags: () -> Unit,
+    onOpenReports: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -57,6 +58,19 @@ fun MoreScreen(
                 )
             },
             modifier = Modifier.clickable(onClick = onOpenCategories),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Reports") },
+            supportingContent = { Text("Date-range and year-over-year spending reports") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenReports),
         )
         HorizontalDivider()
         ListItem(

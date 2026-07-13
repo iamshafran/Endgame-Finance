@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.endgamefinance.data.db.DatabaseProvider
 import com.endgamefinance.data.repo.ReminderRepository
+import com.endgamefinance.data.repo.SnapshotWriter
 import com.endgamefinance.notifications.ReminderNotifier
 import com.endgamefinance.util.Money
 import java.util.concurrent.TimeUnit
@@ -47,6 +48,9 @@ class ReminderCheckWorker(
 
         ReminderNotifier.notifyAutoPosted(applicationContext, autoPosted)
         ReminderNotifier.notifyDue(applicationContext, needAttention)
+
+        // Same cadence keeps the net-worth trend fed: one snapshot per day, upserted
+        SnapshotWriter.writeToday(db)
         return Result.success()
     }
 }

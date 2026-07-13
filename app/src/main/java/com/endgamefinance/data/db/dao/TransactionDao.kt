@@ -96,6 +96,8 @@ interface TransactionDao {
                 WHERE s.transaction_id = t.id), 0) >= :minCents)
           AND (:maxCents IS NULL OR COALESCE((SELECT SUM(s.amount) FROM transaction_splits s
                 WHERE s.transaction_id = t.id), 0) <= :maxCents)
+          AND (:startMs IS NULL OR t.timestamp >= :startMs)
+          AND (:endMs IS NULL OR t.timestamp < :endMs)
         ORDER BY t.timestamp DESC, t.id DESC
         LIMIT 500
         """,
@@ -106,7 +108,26 @@ interface TransactionDao {
         categoryId: String?,
         minCents: Long?,
         maxCents: Long?,
+        startMs: Long?,
+        endMs: Long?,
     ): Flow<List<TransactionListItem>>
+
+    /** Merchant aggregation: expense spending + visit count per payee in a range. */
+    @Query(
+        """
+        SELECT t.payee AS payee,
+               COUNT(DISTINCT t.id) AS visits,
+               COALESCE(SUM(s.amount), 0) AS total
+        FROM transactions t
+        JOIN transaction_splits s ON s.transaction_id = t.id
+        WHERE t.type = 'expense'
+          AND t.payee != 'Starting Balance'
+          AND t.timestamp >= :startMs AND t.timestamp < :endMs
+        GROUP BY t.payee
+        """,
+    )
+    fun observeMerchants(startMs: Long, endMs: Long):
+        Flow<List<com.endgamefinance.data.db.model.MerchantStat>>
 
     /** Distinct payees most-recently-used first, filtered by substring. */
     @Query(

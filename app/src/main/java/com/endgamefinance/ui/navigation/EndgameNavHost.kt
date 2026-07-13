@@ -23,16 +23,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.endgamefinance.R
-import com.endgamefinance.ui.screens.DashboardScreen
 import com.endgamefinance.ui.screens.MoreScreen
 import com.endgamefinance.ui.screens.PlaceholderScreen
 import com.endgamefinance.ui.screens.accounts.AccountEditScreen
 import com.endgamefinance.ui.screens.accounts.AccountsScreen
 import com.endgamefinance.ui.screens.budget.BudgetScreen
 import com.endgamefinance.ui.screens.categories.CategoriesScreen
+import com.endgamefinance.ui.screens.dashboard.DashboardScreen
 import com.endgamefinance.ui.screens.entry.TransactionEntryScreen
 import com.endgamefinance.ui.screens.ledger.LedgerScreen
 import com.endgamefinance.ui.screens.reminders.ReminderEditScreen
+import com.endgamefinance.ui.screens.reports.ReportsScreen
 import com.endgamefinance.ui.screens.reminders.RemindersScreen
 import com.endgamefinance.ui.screens.tags.TagsScreen
 
@@ -61,9 +62,11 @@ fun EndgameApp() {
                     val moreSubRoutes = currentRoute == Routes.ACCOUNTS ||
                         currentRoute == Routes.CATEGORIES ||
                         currentRoute == Routes.TAGS ||
+                        currentRoute == Routes.REPORTS ||
                         currentRoute?.startsWith(Routes.ACCOUNT_EDIT) == true
                     val selected = currentRoute == tab.route ||
                         (tab.route == Routes.MORE && moreSubRoutes) ||
+                        (tab.route == Routes.LEDGER && currentRoute == Routes.SEARCH) ||
                         (tab.route == Routes.LEDGER &&
                             currentRoute?.startsWith(Routes.TRANSACTION_ADD) == true) ||
                         (tab.route == Routes.REMINDERS &&
@@ -91,7 +94,20 @@ fun EndgameApp() {
             startDestination = Routes.DASHBOARD,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(Routes.DASHBOARD) { DashboardScreen() }
+            composable(Routes.DASHBOARD) {
+                DashboardScreen(
+                    onSearch = { navController.navigate(Routes.SEARCH) },
+                )
+            }
+            composable(Routes.SEARCH) {
+                LedgerScreen(
+                    onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
+                    onOpenTransaction = { id ->
+                        navController.navigate("${Routes.TRANSACTION_ADD}?transactionId=$id")
+                    },
+                    showFiltersInitially = true,
+                )
+            }
             composable(Routes.LEDGER) {
                 LedgerScreen(
                     onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
@@ -146,8 +162,10 @@ fun EndgameApp() {
                     onOpenAccounts = { navController.navigate(Routes.ACCOUNTS) },
                     onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
                     onOpenTags = { navController.navigate(Routes.TAGS) },
+                    onOpenReports = { navController.navigate(Routes.REPORTS) },
                 )
             }
+            composable(Routes.REPORTS) { ReportsScreen() }
             composable(Routes.CATEGORIES) { CategoriesScreen() }
             composable(Routes.TAGS) { TagsScreen() }
             composable(Routes.ACCOUNTS) {

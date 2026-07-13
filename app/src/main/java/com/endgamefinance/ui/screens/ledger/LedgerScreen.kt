@@ -19,6 +19,9 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,10 +76,13 @@ data class LedgerFilters(
     val categoryId: String? = null,
     val minCents: Long? = null,
     val maxCents: Long? = null,
+    val startMs: Long? = null,
+    val endMs: Long? = null,
 ) {
     val isActive: Boolean
         get() = accountId != null || payeeQuery.isNotBlank() ||
-            categoryId != null || minCents != null || maxCents != null
+            categoryId != null || minCents != null || maxCents != null ||
+            startMs != null || endMs != null
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -92,6 +99,8 @@ class LedgerViewModel(db: EndgameDatabase) : ViewModel() {
                 categoryId = f.categoryId,
                 minCents = f.minCents,
                 maxCents = f.maxCents,
+                startMs = f.startMs,
+                endMs = f.endMs,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -114,19 +123,22 @@ class LedgerViewModel(db: EndgameDatabase) : ViewModel() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LedgerScreen(
     onAddTransaction: () -> Unit,
     onOpenTransaction: (String) -> Unit,
+    showFiltersInitially: Boolean = false,
     viewModel: LedgerViewModel = viewModel(factory = LedgerViewModel.factory(LocalContext.current)),
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val filters by viewModel.filters.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
-    var showFilters by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(showFiltersInitially) }
     var minText by remember { mutableStateOf("") }
     var maxText by remember { mutableStateOf("") }
+    var datePickTarget by remember { mutableStateOf<String?>(null) } // "start" | "end"
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -204,6 +216,46 @@ fun LedgerScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         }
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            OutlinedTextField(
+                                value = filters.startMs?.let {
+                                    java.text.DateFormat.getDateInstance(
+                                        java.text.DateFormat.SHORT,
+                                    ).format(java.util.Date(it))
+                                } ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("From date") },
+                                placeholder = { Text("Any") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { datePickTarget = "start" },
+                                trailingIcon = {
+                                    TextButton(onClick = { datePickTarget = "start" }) {
+                                        Text("Set")
+                                    }
+                                },
+                            )
+                            OutlinedTextField(
+                                value = filters.endMs?.let {
+                                    java.text.DateFormat.getDateInstance(
+                                        java.text.DateFormat.SHORT,
+                                    ).format(java.util.Date(it - 1))
+                                } ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("To date") },
+                                placeholder = { Text("Any") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { datePickTarget = "end" },
+                                trailingIcon = {
+                                    TextButton(onClick = { datePickTarget = "end" }) {
+                                        Text("Set")
+                                    }
+                                },
+                            )
+                        }
                         if (filters.isActive) {
                             TextButton(
                                 onClick = {
@@ -249,6 +301,45 @@ fun LedgerScreen(
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add transaction")
         }
+    }
+
+    datePickTarget?.let { target ->
+        val initial = if (target == "start") filters.startMs ?: System.currentTimeMillis()
+        else (filters.endMs?.minus(1)) ?: System.currentTimeMillis()
+        val state = rememberDatePickerState(initialSelectedDateMillis = initial)
+        DatePickerDialog(
+            onDismissRequest = { datePickTarget = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        state.selectedDateMillis?.let { utc ->
+                            val date = java.time.Instant.ofEpochMilli(utc)
+                                .atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                            val zone = java.time.ZoneId.systemDefault()
+                            if (target == "start") {
+                                viewModel.setFilters(
+                                    filters.copy(
+                                        startMs = date.atStartOfDay(zone)
+                                            .toInstant().toEpochMilli(),
+                                    ),
+                                )
+                            } else {
+                                viewModel.setFilters(
+                                    filters.copy(
+                                        endMs = date.plusDays(1).atStartOfDay(zone)
+                                            .toInstant().toEpochMilli(),
+                                    ),
+                                )
+                            }
+                        }
+                        datePickTarget = null
+                    },
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { datePickTarget = null }) { Text("Cancel") }
+            },
+        ) { DatePicker(state = state) }
     }
 }
 

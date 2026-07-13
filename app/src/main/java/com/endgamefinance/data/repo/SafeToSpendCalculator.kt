@@ -1,0 +1,114 @@
+package com.endgamefinance.data.repo
+
+import com.endgamefinance.data.db.entity.Budget
+import com.endgamefinance.data.db.entity.Category
+import com.endgamefinance.data.db.entity.Envelope
+import com.endgamefinance.data.db.entity.Reminder
+import com.endgamefinance.data.db.model.AccountWithBalance
+
+data class SafeToSpend(
+    val amountCents: Long,
+    // Inputs, for the tap-to-explain breakdown — each maps 1:1 to docs/safe-to-spend.md
+    val liquidBalances: Long,
+    val envelopeFunds: Long,
+    val upcomingBills: Long,
+    val remainingBudgetCommitments: Long,
+    /** End of the "until payday" window used for UpcomingBills. */
+    val nextIncomeDate: Long?,
+    /** Variable-amount bills that could not be counted — surfaced, never $0. */
+    val uncountedVariableBills: List<String>,
+)
+
+/**
+ * Implements docs/safe-to-spend.md EXACTLY. If this file and that document
+ * disagree, this file is wrong. Pure function — no I/O.
+ */
+object SafeToSpendCalculator {
+
+    private const val DAY_MS = 86_400_000L
+    private const val HORIZON_DAYS = 30
+
+    fun calculate(
+        accounts: List<AccountWithBalance>,
+        envelopes: List<Envelope>,
+        reminders: List<Reminder>,
+        categoriesById: Map<String, Category>,
+        monthBudgets: List<Budget>,
+        carryInByCategory: Map<String, Long>,
+        spentByCategory: Map<String, Long>,
+        nowMs: Long = System.currentTimeMillis(),
+    ): SafeToSpend {
+        val assetAccountIds = accounts
+            .filter { it.account.type == "asset" }
+            .map { it.account.id }
+            .toSet()
+
+        // LiquidBalances: active asset accounts only
+        val liquid = accounts
+            .filter { it.account.id in assetAccountIds }
+            .sumOf { it.balance }
+
+        // EnvelopeFunds: all envelope balances are spoken for
+        val envelopeFunds = envelopes.sumOf { it.currentAmount }
+
+        val horizonEnd = nowMs + HORIZON_DAYS * DAY_MS
+
+        fun isIncomeReminder(r: Reminder): Boolean =
+            r.toAccountId == null &&
+                r.categoryId?.let { categoriesById[it] }?.type == Category.TYPE_INCOME
+
+        // Next expected income event; fall back to full horizon if none
+        val nextIncomeDate = reminders
+            .filter { it.amount != null && isIncomeReminder(it) && it.accountId in assetAccountIds }
+            .minOfOrNull { it.nextDueDate }
+            ?.takeIf { it <= horizonEnd }
+        val windowEnd = nextIncomeDate ?: horizonEnd
+
+        // UpcomingBills: fixed-amount asset outflows due inside the window,
+        // expanded across their cadence. Track per-category for the
+        // double-count correction.
+        var upcomingBills = 0L
+        val billsByCategory = mutableMapOf<String, Long>()
+        reminders
+            .filter { it.amount != null && !isIncomeReminder(it) && it.accountId in assetAccountIds }
+            .forEach { reminder ->
+                var current = reminder
+                var guard = 0
+                while (current.nextDueDate <= windowEnd && guard < 100) {
+                    val amount = requireNotNull(reminder.amount)
+                    upcomingBills += amount
+                    reminder.categoryId?.let { cat ->
+                        billsByCategory[cat] = (billsByCategory[cat] ?: 0L) + amount
+                    }
+                    if (current.frequency == "once") break
+                    current = current.copy(
+                        nextDueDate = ReminderRepository.nextOccurrence(current),
+                    )
+                    guard++
+                }
+            }
+
+        val uncountedVariable = reminders
+            .filter { it.amount == null && it.accountId in assetAccountIds }
+            .map { it.name }
+
+        // RemainingBudgetCommitments with the double-count correction:
+        // a bill already counted above must not be held again by its budget
+        val remainingCommitments = monthBudgets.sumOf { budget ->
+            val available = budget.allocatedAmount + (carryInByCategory[budget.categoryId] ?: 0L)
+            val spent = spentByCategory[budget.categoryId] ?: 0L
+            val counted = billsByCategory[budget.categoryId] ?: 0L
+            maxOf(0L, available - spent - counted)
+        }
+
+        return SafeToSpend(
+            amountCents = liquid - envelopeFunds - upcomingBills - remainingCommitments,
+            liquidBalances = liquid,
+            envelopeFunds = envelopeFunds,
+            upcomingBills = upcomingBills,
+            remainingBudgetCommitments = remainingCommitments,
+            nextIncomeDate = nextIncomeDate,
+            uncountedVariableBills = uncountedVariable,
+        )
+    }
+}

@@ -84,6 +84,20 @@ interface BudgetDao {
     )
     fun observeSpendByDay(startMs: Long, endMs: Long): Flow<List<DaySpend>>
 
+    /** Uncategorized expense total in [startMs, endMs) — reports must not lose it. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(s.amount), 0)
+        FROM transaction_splits s
+        JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.timestamp >= :startMs AND t.timestamp < :endMs
+          AND t.payee != 'Starting Balance'
+          AND t.type = 'expense'
+          AND s.category_id IS NULL
+        """,
+    )
+    fun observeUncategorizedSpend(startMs: Long, endMs: Long): Flow<Long>
+
     /** Total spending in [startMs, endMs) — same definition as observeSpendByDay. */
     @Query(
         """

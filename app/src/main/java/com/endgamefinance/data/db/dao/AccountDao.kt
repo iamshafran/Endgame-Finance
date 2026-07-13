@@ -54,6 +54,10 @@ interface AccountDao {
     @Query("SELECT accounts.*, $BALANCE_SUBQUERY AS balance FROM accounts WHERE id = :id")
     suspend fun getWithBalance(id: String): AccountWithBalance?
 
+    /** ALL accounts including archived — history math must span everything. */
+    @Query("SELECT accounts.*, $BALANCE_SUBQUERY AS balance FROM accounts")
+    suspend fun allWithBalancesOnce(): List<AccountWithBalance>
+
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getById(id: String): Account?
 

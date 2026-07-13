@@ -6,6 +6,7 @@ import com.endgamefinance.data.db.dao.AccountDao
 import com.endgamefinance.data.db.dao.BudgetDao
 import com.endgamefinance.data.db.dao.CategoryDao
 import com.endgamefinance.data.db.dao.EnvelopeDao
+import com.endgamefinance.data.db.dao.NetWorthSnapshotDao
 import com.endgamefinance.data.db.dao.ReminderDao
 import com.endgamefinance.data.db.dao.TagDao
 import com.endgamefinance.data.db.dao.TransactionDao
@@ -48,4 +49,5 @@ abstract class EndgameDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun envelopeDao(): EnvelopeDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun netWorthSnapshotDao(): NetWorthSnapshotDao
 }
