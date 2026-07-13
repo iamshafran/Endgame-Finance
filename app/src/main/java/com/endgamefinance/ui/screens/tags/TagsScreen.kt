@@ -73,17 +73,27 @@ class TagsViewModel(private val db: EndgameDatabase) : ViewModel() {
 
 @Composable
 fun TagsScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: TagsViewModel = viewModel(factory = TagsViewModel.factory(LocalContext.current)),
 ) {
     val tags by viewModel.tags.collectAsState()
     var dialogTag by remember { mutableStateOf<Tag?>(null) }
     var showNewDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item {
-                com.endgamefinance.ui.components.ScreenTitle("Tags")
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Tags",
+        onBack = onBack,
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showNewDialog = true }) {
+                Icon(Icons.Filled.Add, contentDescription = "Add tag")
             }
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
             items(tags, key = { it.id }) { tag ->
                 Row(
                     modifier = Modifier
@@ -107,14 +117,6 @@ fun TagsScreen(
                     )
                 }
             }
-        }
-        FloatingActionButton(
-            onClick = { showNewDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add tag")
         }
     }
 

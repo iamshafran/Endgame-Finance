@@ -170,10 +170,10 @@ fun TransactionEntryScreen(
                 if (isLoanPayment) {
                     type = "loan_payment"
                     loaded.splits.firstOrNull { it.categoryId == null }?.let {
-                        principalText = Money.format(it.amount).replace("$", "")
+                        principalText = Money.formatPlain(it.amount)
                     }
                     loaded.splits.firstOrNull { it.categoryId != null }?.let {
-                        interestText = Money.format(it.amount).replace("$", "")
+                        interestText = Money.formatPlain(it.amount)
                         interestCategoryId = it.categoryId
                     }
                 } else if (loaded.splits.size > 1) {
@@ -181,12 +181,12 @@ fun TransactionEntryScreen(
                     splitRows.clear()
                     loaded.splits.forEach { split ->
                         splitRows.add(
-                            SplitRow(split.categoryId, Money.format(split.amount).replace("$", "")),
+                            SplitRow(split.categoryId, Money.formatPlain(split.amount)),
                         )
                     }
                 } else {
                     loaded.splits.firstOrNull()?.let { split ->
-                        amountText = Money.format(split.amount).replace("$", "")
+                        amountText = Money.formatPlain(split.amount)
                         categoryId = split.categoryId
                     }
                 }
@@ -298,8 +298,16 @@ fun TransactionEntryScreen(
         )
     }
 
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = if (isEditing) "Edit transaction" else "New transaction",
+        onBack = onDone,
+    ) { innerPadding ->
     // Scrollable body + sticky action bar (feature 2)
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+    ) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -307,11 +315,6 @@ fun TransactionEntryScreen(
                 .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text(
-                if (isEditing) "Edit transaction" else "New transaction",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-
             // Type as a segmented control (feature 10)
             val typeOptions = listOf(
                 "expense" to "Expense",
@@ -811,6 +814,7 @@ fun TransactionEntryScreen(
                 ) { Text(if (isEditing) "Save changes" else "Save") }
             }
         }
+    }
     }
 
     if (showNewTag) {

@@ -42,13 +42,26 @@ private val typeOrder = listOf(
 fun AccountsScreen(
     onAddAccount: () -> Unit,
     onEditAccount: (String) -> Unit,
+    onBack: (() -> Unit)? = null,
     viewModel: AccountsViewModel =
         viewModel(factory = AccountsViewModel.factory(LocalContext.current)),
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Accounts",
+        onBack = onBack,
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddAccount) {
+                Icon(Icons.Filled.Add, contentDescription = "Add account")
+            }
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
             item(key = "net_worth") {
                 NetWorthHeader(netWorthCents = state.netWorthCents)
             }
@@ -86,14 +99,6 @@ fun AccountsScreen(
                     )
                 }
             }
-        }
-        FloatingActionButton(
-            onClick = onAddAccount,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add account")
         }
     }
 }

@@ -90,6 +90,7 @@ class ReconcileViewModel(
 @Composable
 fun ReconcileScreen(
     accountId: String,
+    onBack: (() -> Unit)? = null,
     viewModel: ReconcileViewModel = viewModel(
         factory = ReconcileViewModel.factory(LocalContext.current, accountId),
     ),
@@ -97,7 +98,15 @@ fun ReconcileScreen(
     val state by viewModel.uiState.collectAsState()
     val moneyColors = LocalMoneyColors.current
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Reconcile",
+        onBack = onBack,
+    ) { innerPadding ->
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+    ) {
         item(key = "header") {
             Card(
                 modifier = Modifier
@@ -176,6 +185,7 @@ fun ReconcileScreen(
                 )
             }
         }
+    }
     }
 }
 

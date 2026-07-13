@@ -32,6 +32,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -150,6 +151,8 @@ fun LedgerScreen(
     onAddTransaction: () -> Unit,
     onOpenTransaction: (String) -> Unit,
     showFiltersInitially: Boolean = false,
+    title: String = "Ledger",
+    onBack: (() -> Unit)? = null,
     viewModel: LedgerViewModel = viewModel(factory = LedgerViewModel.factory(LocalContext.current)),
 ) {
     val transactions by viewModel.transactions.collectAsState()
@@ -162,27 +165,30 @@ fun LedgerScreen(
     var datePickTarget by remember { mutableStateOf<String?>(null) } // "start" | "end"
     var pendingDelete by remember { mutableStateOf<TransactionListItem?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item(key = "title") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Ledger", style = MaterialTheme.typography.headlineMedium)
-                    IconButton(onClick = { showFilters = !showFilters }) {
-                        Icon(
-                            Icons.Filled.Search,
-                            contentDescription = "Toggle filters",
-                            tint = if (filters.isActive) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = title,
+        onBack = onBack,
+        actions = {
+            IconButton(onClick = { showFilters = !showFilters }) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = "Toggle filters",
+                    tint = if (filters.isActive) MaterialTheme.colorScheme.tertiary
+                    else LocalContentColor.current,
+                )
             }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddTransaction) {
+                Icon(Icons.Filled.Add, contentDescription = "Add transaction")
+            }
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
             if (showFilters) {
                 item(key = "filters") {
                     Column(
@@ -327,14 +333,6 @@ fun LedgerScreen(
                     }
                 }
             }
-        }
-        FloatingActionButton(
-            onClick = onAddTransaction,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add transaction")
         }
     }
 

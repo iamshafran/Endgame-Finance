@@ -1,169 +1,321 @@
 package com.endgamefinance.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.BeachAccess
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.BusinessCenter
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Celebration
-import androidx.compose.material.icons.filled.Chair
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.ChildCare
-import androidx.compose.material.icons.filled.Church
-import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.DirectionsBus
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.FamilyRestroom
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.Healing
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.Icecream
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.LocalBar
-import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material.icons.filled.LocalGasStation
-import androidx.compose.material.icons.filled.LocalGroceryStore
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.LocalLaundryService
-import androidx.compose.material.icons.filled.LocalMall
-import androidx.compose.material.icons.filled.LocalParking
-import androidx.compose.material.icons.filled.LocalPizza
-import androidx.compose.material.icons.filled.LocalTaxi
-import androidx.compose.material.icons.filled.Luggage
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Park
-import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Pool
-import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.Redeem
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.SportsBasketball
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Theaters
-import androidx.compose.material.icons.filled.Train
-import androidx.compose.material.icons.filled.Umbrella
-import androidx.compose.material.icons.filled.Watch
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * Curated, searchable subset of the Material icon set for categories.
- * Keys are stored in categories.icon — never rename a key without a migration.
+ * Large curated subset of the Material (Filled) icon set for categories.
+ * Keys are stored in categories.icon — NEVER rename or remove an existing key
+ * without a migration, or already-assigned category icons will break.
+ * New icons may be appended freely.
  */
 object IconCatalog {
 
     val entries: List<Pair<String, ImageVector>> = listOf(
-        // Food & drink
+        // ---- Food & drink ----
         "restaurant" to Icons.Filled.Restaurant,
+        "restaurant_menu" to Icons.Filled.RestaurantMenu,
         "fastfood" to Icons.Filled.Fastfood,
         "cafe" to Icons.Filled.LocalCafe,
+        "coffee" to Icons.Filled.Coffee,
         "bar" to Icons.Filled.LocalBar,
+        "wine" to Icons.Filled.WineBar,
+        "liquor" to Icons.Filled.Liquor,
+        "sports_bar" to Icons.Filled.SportsBar,
+        "nightlife" to Icons.Filled.Nightlife,
         "pizza" to Icons.Filled.LocalPizza,
+        "dining" to Icons.Filled.LocalDining,
+        "lunch" to Icons.Filled.LunchDining,
+        "dinner" to Icons.Filled.DinnerDining,
+        "brunch" to Icons.Filled.BrunchDining,
+        "ramen" to Icons.Filled.RamenDining,
+        "bakery" to Icons.Filled.BakeryDining,
         "icecream" to Icons.Filled.Icecream,
         "cake" to Icons.Filled.Cake,
+        "egg" to Icons.Filled.Egg,
+        "kitchen" to Icons.Filled.Kitchen,
         "groceries" to Icons.Filled.LocalGroceryStore,
-        // Transport
+        "basket" to Icons.Filled.ShoppingBasket,
+        // ---- Transport ----
         "car" to Icons.Filled.DirectionsCar,
+        "car_rental" to Icons.Filled.CarRental,
+        "car_repair" to Icons.Filled.CarRepair,
+        "electric_car" to Icons.Filled.ElectricCar,
+        "ev_station" to Icons.Filled.EvStation,
         "bus" to Icons.Filled.DirectionsBus,
+        "subway" to Icons.Filled.DirectionsSubway,
+        "transit" to Icons.Filled.DirectionsTransit,
+        "railway" to Icons.Filled.DirectionsRailway,
         "train" to Icons.Filled.Train,
+        "tram" to Icons.Filled.Tram,
+        "boat" to Icons.Filled.DirectionsBoat,
+        "sailing" to Icons.Filled.Sailing,
+        "bike" to Icons.Filled.DirectionsBike,
+        "pedal_bike" to Icons.Filled.PedalBike,
+        "moped" to Icons.Filled.Moped,
+        "motorcycle" to Icons.Filled.TwoWheeler,
+        "walk" to Icons.Filled.DirectionsWalk,
         "taxi" to Icons.Filled.LocalTaxi,
+        "shuttle" to Icons.Filled.AirportShuttle,
+        "commute" to Icons.Filled.Commute,
+        "shipping" to Icons.Filled.LocalShipping,
         "flight" to Icons.Filled.Flight,
+        "flight_takeoff" to Icons.Filled.FlightTakeoff,
+        "flight_land" to Icons.Filled.FlightLand,
+        "airport" to Icons.Filled.LocalAirport,
         "gas" to Icons.Filled.LocalGasStation,
         "parking" to Icons.Filled.LocalParking,
-        // Home & utilities
+        // ---- Home & utilities ----
         "home" to Icons.Filled.Home,
+        "house" to Icons.Filled.House,
+        "apartment" to Icons.Filled.Apartment,
+        "cottage" to Icons.Filled.Cottage,
+        "villa" to Icons.Filled.Villa,
+        "cabin" to Icons.Filled.Cabin,
         "furniture" to Icons.Filled.Chair,
+        "bed" to Icons.Filled.Bed,
+        "weekend" to Icons.Filled.Weekend,
+        "bathtub" to Icons.Filled.Bathtub,
+        "countertops" to Icons.Filled.Countertops,
+        "deck" to Icons.Filled.Deck,
+        "yard" to Icons.Filled.Yard,
+        "grass" to Icons.Filled.Grass,
+        "florist" to Icons.Filled.LocalFlorist,
+        "fireplace" to Icons.Filled.Fireplace,
+        "roofing" to Icons.Filled.Roofing,
+        "foundation" to Icons.Filled.Foundation,
+        "plumbing" to Icons.Filled.Plumbing,
+        "handyman" to Icons.Filled.Handyman,
         "tools" to Icons.Filled.Build,
+        "construction" to Icons.Filled.Construction,
+        "electrical" to Icons.Filled.ElectricalServices,
         "electricity" to Icons.Filled.Bolt,
         "power" to Icons.Filled.Power,
         "light" to Icons.Filled.Lightbulb,
+        "thermostat" to Icons.Filled.Thermostat,
+        "sensors" to Icons.Filled.Sensors,
+        "water" to Icons.Filled.WaterDrop,
         "wifi" to Icons.Filled.Wifi,
-        "phone" to Icons.Filled.Phone,
-        "mobile" to Icons.Filled.PhoneAndroid,
+        "router" to Icons.Filled.Router,
         "laundry" to Icons.Filled.LocalLaundryService,
-        // Health & fitness
+        "cleaning" to Icons.Filled.CleaningServices,
+        "iron" to Icons.Filled.Iron,
+        "microwave" to Icons.Filled.Microwave,
+        "blender" to Icons.Filled.Blender,
+        // ---- Health & fitness ----
         "hospital" to Icons.Filled.LocalHospital,
+        "medical" to Icons.Filled.MedicalServices,
+        "medication" to Icons.Filled.Medication,
         "healing" to Icons.Filled.Healing,
+        "vaccines" to Icons.Filled.Vaccines,
+        "heart_monitor" to Icons.Filled.MonitorHeart,
+        "bloodtype" to Icons.Filled.Bloodtype,
+        "masks" to Icons.Filled.Masks,
+        "emergency" to Icons.Filled.Emergency,
+        "psychology" to Icons.Filled.Psychology,
         "fitness" to Icons.Filled.FitnessCenter,
+        "self_improvement" to Icons.Filled.SelfImprovement,
         "spa" to Icons.Filled.Spa,
-        // Shopping & personal
+        "run" to Icons.Filled.DirectionsRun,
+        "hiking" to Icons.Filled.Hiking,
+        "pool" to Icons.Filled.Pool,
+        "skiing" to Icons.Filled.DownhillSkiing,
+        "snowboard" to Icons.Filled.Snowboarding,
+        "skateboard" to Icons.Filled.Skateboarding,
+        "surfing" to Icons.Filled.Surfing,
+        "soccer" to Icons.Filled.SportsSoccer,
+        "basketball" to Icons.Filled.SportsBasketball,
+        "baseball" to Icons.Filled.SportsBaseball,
+        "tennis" to Icons.Filled.SportsTennis,
+        "football" to Icons.Filled.SportsFootball,
+        "golf" to Icons.Filled.SportsGolf,
+        "hockey" to Icons.Filled.SportsHockey,
+        "volleyball" to Icons.Filled.SportsVolleyball,
+        "cricket" to Icons.Filled.SportsCricket,
+        "mma" to Icons.Filled.SportsMma,
+        "motorsports" to Icons.Filled.SportsMotorsports,
+        "esports" to Icons.Filled.SportsEsports,
+        // ---- Shopping & personal ----
         "cart" to Icons.Filled.ShoppingCart,
         "shopping" to Icons.Filled.ShoppingBag,
+        "store" to Icons.Filled.Store,
+        "storefront" to Icons.Filled.Storefront,
         "mall" to Icons.Filled.LocalMall,
+        "offer" to Icons.Filled.LocalOffer,
+        "sell" to Icons.Filled.Sell,
+        "loyalty" to Icons.Filled.Loyalty,
         "clothes" to Icons.Filled.Checkroom,
+        "diamond" to Icons.Filled.Diamond,
+        "watch" to Icons.Filled.Watch,
         "haircut" to Icons.Filled.ContentCut,
         "beauty" to Icons.Filled.Brush,
         "face" to Icons.Filled.Face,
-        "watch" to Icons.Filled.Watch,
         "gift" to Icons.Filled.CardGiftcard,
         "redeem" to Icons.Filled.Redeem,
-        // Entertainment & leisure
+        // ---- Entertainment & leisure ----
         "movie" to Icons.Filled.Movie,
         "theater" to Icons.Filled.Theaters,
+        "comedy" to Icons.Filled.TheaterComedy,
+        "tv" to Icons.Filled.Tv,
+        "live_tv" to Icons.Filled.LiveTv,
         "music" to Icons.Filled.MusicNote,
+        "library_music" to Icons.Filled.LibraryMusic,
+        "album" to Icons.Filled.Album,
+        "headphones" to Icons.Filled.Headphones,
+        "speaker" to Icons.Filled.Speaker,
+        "radio" to Icons.Filled.Radio,
+        "podcasts" to Icons.Filled.Podcasts,
+        "mic" to Icons.Filled.Mic,
+        "piano" to Icons.Filled.Piano,
         "games" to Icons.Filled.SportsEsports,
-        "soccer" to Icons.Filled.SportsSoccer,
-        "basketball" to Icons.Filled.SportsBasketball,
+        "videogame" to Icons.Filled.VideogameAsset,
+        "toys" to Icons.Filled.Toys,
+        "smart_toy" to Icons.Filled.SmartToy,
+        "extension" to Icons.Filled.Extension,
         "casino" to Icons.Filled.Casino,
-        "park" to Icons.Filled.Park,
-        "beach" to Icons.Filled.BeachAccess,
-        "pool" to Icons.Filled.Pool,
         "celebration" to Icons.Filled.Celebration,
+        "festival" to Icons.Filled.Festival,
+        "attractions" to Icons.Filled.Attractions,
         "camera" to Icons.Filled.CameraAlt,
-        // Travel
+        "photo_camera" to Icons.Filled.PhotoCamera,
+        "videocam" to Icons.Filled.Videocam,
+        "photo" to Icons.Filled.Photo,
+        "collections" to Icons.Filled.Collections,
+        "palette" to Icons.Filled.Palette,
+        "draw" to Icons.Filled.Draw,
+        "color_lens" to Icons.Filled.ColorLens,
+        "book" to Icons.Filled.MenuBook,
+        "auto_stories" to Icons.Filled.AutoStories,
+        "library" to Icons.Filled.LocalLibrary,
+        // ---- Travel ----
         "luggage" to Icons.Filled.Luggage,
+        "backpack" to Icons.Filled.Backpack,
         "hotel" to Icons.Filled.Hotel,
         "map" to Icons.Filled.Map,
-        // Education & work
+        "explore" to Icons.Filled.Explore,
+        "travel_explore" to Icons.Filled.TravelExplore,
+        "public" to Icons.Filled.Public,
+        "terrain" to Icons.Filled.Terrain,
+        "landscape" to Icons.Filled.Landscape,
+        "beach" to Icons.Filled.BeachAccess,
+        "park" to Icons.Filled.Park,
+        "forest" to Icons.Filled.Forest,
+        "museum" to Icons.Filled.Museum,
+        "castle" to Icons.Filled.Castle,
+        "city" to Icons.Filled.LocationCity,
+        "place" to Icons.Filled.Place,
+        "tour" to Icons.Filled.Tour,
+        "ticket" to Icons.Filled.ConfirmationNumber,
+        // ---- Education & work ----
         "school" to Icons.Filled.School,
         "science" to Icons.Filled.Science,
+        "biotech" to Icons.Filled.Biotech,
+        "calculate" to Icons.Filled.Calculate,
+        "history_edu" to Icons.Filled.HistoryEdu,
+        "class" to Icons.Filled.Class,
+        "grade" to Icons.Filled.Grade,
+        "trophy" to Icons.Filled.EmojiEvents,
+        "premium" to Icons.Filled.WorkspacePremium,
+        "military_tech" to Icons.Filled.MilitaryTech,
         "work" to Icons.Filled.Work,
         "business" to Icons.Filled.BusinessCenter,
-        // Money
+        "company" to Icons.Filled.Business,
+        "badge" to Icons.Filled.Badge,
+        "engineering" to Icons.Filled.Engineering,
+        "architecture" to Icons.Filled.Architecture,
+        "design" to Icons.Filled.DesignServices,
+        "gavel" to Icons.Filled.Gavel,
+        "balance" to Icons.Filled.Balance,
+        "policy" to Icons.Filled.Policy,
+        "description" to Icons.Filled.Description,
+        "article" to Icons.Filled.Article,
+        "assignment" to Icons.Filled.Assignment,
+        "print" to Icons.Filled.Print,
+        "computer" to Icons.Filled.Computer,
+        "laptop" to Icons.Filled.Laptop,
+        "keyboard" to Icons.Filled.Keyboard,
+        "memory" to Icons.Filled.Memory,
+        "storage" to Icons.Filled.Storage,
+        "cloud" to Icons.Filled.Cloud,
+        "code" to Icons.Filled.Code,
+        "terminal" to Icons.Filled.Terminal,
+        // ---- Money & finance ----
         "money" to Icons.Filled.AttachMoney,
+        "monetization" to Icons.Filled.MonetizationOn,
+        "money_bag" to Icons.Filled.Money,
+        "payments" to Icons.Filled.Payments,
+        "paid" to Icons.Filled.Paid,
+        "price_check" to Icons.Filled.PriceCheck,
+        "request_quote" to Icons.Filled.RequestQuote,
+        "receipt" to Icons.Filled.ReceiptLong,
+        "receipt_short" to Icons.Filled.Receipt,
         "bank" to Icons.Filled.AccountBalance,
         "wallet" to Icons.Filled.AccountBalanceWallet,
-        "card" to Icons.Filled.CreditCard,
         "savings" to Icons.Filled.Savings,
-        // Family & pets
+        "card" to Icons.Filled.CreditCard,
+        "credit_score" to Icons.Filled.CreditScore,
+        "atm" to Icons.Filled.LocalAtm,
+        "pos" to Icons.Filled.PointOfSale,
+        "toll" to Icons.Filled.Toll,
+        "currency_exchange" to Icons.Filled.CurrencyExchange,
+        "bitcoin" to Icons.Filled.CurrencyBitcoin,
+        "trending_up" to Icons.Filled.TrendingUp,
+        "trending_down" to Icons.Filled.TrendingDown,
+        "chart" to Icons.Filled.ShowChart,
+        "bar_chart" to Icons.Filled.BarChart,
+        "pie_chart" to Icons.Filled.PieChart,
+        "analytics" to Icons.Filled.Analytics,
+        "insights" to Icons.Filled.Insights,
+        "percent" to Icons.Filled.Percent,
+        // ---- Family & people ----
         "pets" to Icons.Filled.Pets,
+        "cruelty_free" to Icons.Filled.CrueltyFree,
         "child" to Icons.Filled.ChildCare,
+        "child_friendly" to Icons.Filled.ChildFriendly,
+        "stroller" to Icons.Filled.Stroller,
         "family" to Icons.Filled.FamilyRestroom,
-        // Misc
+        "woman" to Icons.Filled.Woman,
+        "man" to Icons.Filled.Man,
+        "boy" to Icons.Filled.Boy,
+        "girl" to Icons.Filled.Girl,
+        "elderly" to Icons.Filled.Elderly,
+        "people" to Icons.Filled.People,
+        "group" to Icons.Filled.Groups,
+        "diversity" to Icons.Filled.Diversity3,
+        // ---- Symbols & misc ----
         "insurance" to Icons.Filled.Security,
+        "shield" to Icons.Filled.Shield,
+        "verified" to Icons.Filled.VerifiedUser,
+        "lock" to Icons.Filled.Lock,
         "umbrella" to Icons.Filled.Umbrella,
         "church" to Icons.Filled.Church,
+        "mosque" to Icons.Filled.Mosque,
+        "synagogue" to Icons.Filled.Synagogue,
+        "temple_buddhist" to Icons.Filled.TempleBuddhist,
+        "temple_hindu" to Icons.Filled.TempleHindu,
         "favorite" to Icons.Filled.Favorite,
         "star" to Icons.Filled.Star,
+        "bookmark" to Icons.Filled.Bookmark,
+        "label" to Icons.Filled.Label,
+        "flag" to Icons.Filled.Flag,
+        "interests" to Icons.Filled.Interests,
+        "recycling" to Icons.Filled.Recycling,
+        "eco" to Icons.Filled.Eco,
+        "leaf" to Icons.Filled.EnergySavingsLeaf,
+        "sunny" to Icons.Filled.WbSunny,
+        "ac_unit" to Icons.Filled.AcUnit,
+        "fire" to Icons.Filled.LocalFireDepartment,
+        "whatshot" to Icons.Filled.Whatshot,
+        "anchor" to Icons.Filled.Anchor,
+        "rocket" to Icons.Filled.RocketLaunch,
+        "phone" to Icons.Filled.Phone,
+        "mobile" to Icons.Filled.PhoneAndroid,
+        "tablet" to Icons.Filled.Tablet,
+        "headset" to Icons.Filled.Headset,
+        "sim" to Icons.Filled.SimCard,
+        "battery" to Icons.Filled.BatteryFull,
+        "settings" to Icons.Filled.Settings,
         "category" to Icons.Filled.Category,
     )
 

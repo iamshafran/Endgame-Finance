@@ -48,6 +48,7 @@ import com.endgamefinance.ui.theme.Spacing
 
 @Composable
 fun CategoriesScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: CategoriesViewModel =
         viewModel(factory = CategoriesViewModel.factory(LocalContext.current)),
 ) {
@@ -63,11 +64,21 @@ fun CategoriesScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item {
-                com.endgamefinance.ui.components.ScreenTitle("Categories")
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Categories",
+        onBack = onBack,
+        floatingActionButton = {
+            FloatingActionButton(onClick = { dialogTarget = CategoryDialogTarget.New }) {
+                Icon(Icons.Filled.Add, contentDescription = "Add category")
             }
+        },
+    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+    ) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
             section("Expense", state.expense) { dialogTarget = CategoryDialogTarget.Edit(it) }
             section("Income", state.income) { dialogTarget = CategoryDialogTarget.Edit(it) }
             if (state.expense.isEmpty() && state.income.isEmpty()) {
@@ -87,14 +98,7 @@ fun CategoriesScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
-        FloatingActionButton(
-            onClick = { dialogTarget = CategoryDialogTarget.New },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add category")
-        }
+    }
     }
 
     when (val target = dialogTarget) {

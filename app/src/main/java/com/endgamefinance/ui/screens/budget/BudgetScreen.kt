@@ -50,25 +50,31 @@ import com.endgamefinance.util.Money
 @Composable
 fun BudgetScreen() {
     var section by remember { mutableStateOf("budgets") }
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+    com.endgamefinance.ui.components.EndgameScaffold(title = "Budget") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            FilterChip(
-                selected = section == "budgets",
-                onClick = { section = "budgets" },
-                label = { Text("Budgets") },
-            )
-            FilterChip(
-                selected = section == "envelopes",
-                onClick = { section = "envelopes" },
-                label = { Text("Envelopes") },
-            )
-        }
-        when (section) {
-            "budgets" -> BudgetsTab()
-            else -> EnvelopesTab()
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            ) {
+                FilterChip(
+                    selected = section == "budgets",
+                    onClick = { section = "budgets" },
+                    label = { Text("Budgets") },
+                )
+                FilterChip(
+                    selected = section == "envelopes",
+                    onClick = { section = "envelopes" },
+                    label = { Text("Envelopes") },
+                )
+            }
+            when (section) {
+                "budgets" -> BudgetsTab()
+                else -> EnvelopesTab()
+            }
         }
     }
 }
@@ -296,7 +302,7 @@ private fun BudgetEditDialog(
     onDismiss: () -> Unit,
 ) {
     var amountText by remember {
-        mutableStateOf(row.allocated?.let { Money.format(it).replace("$", "") } ?: "")
+        mutableStateOf(row.allocated?.let { Money.formatPlain(it) } ?: "")
     }
     var rollover by remember { mutableStateOf(row.rolloverMode) }
     var suggestion by remember { mutableStateOf<Long?>(null) }
@@ -332,7 +338,7 @@ private fun BudgetEditDialog(
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(
-                            onClick = { amountText = Money.format(avg).replace("$", "") },
+                            onClick = { amountText = Money.formatPlain(avg) },
                         ) { Text("Use") }
                     }
                 }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +58,9 @@ fun EndgameApp() {
     val currentRoute = backStackEntry?.destination?.route
 
     Scaffold(
+        // Top inset is owned by each screen's own TopAppBar (EndgameScaffold);
+        // zero it here so there's no double status-bar padding.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavigationBar {
                 bottomTabs.forEach { tab ->
@@ -132,6 +136,8 @@ fun EndgameApp() {
                         navController.navigate("${Routes.TRANSACTION_ADD}?transactionId=$id")
                     },
                     showFiltersInitially = true,
+                    title = "Search",
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.LEDGER) {
@@ -192,16 +198,25 @@ fun EndgameApp() {
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.REPORTS) { ReportsScreen() }
-            composable(Routes.SETTINGS) { SettingsScreen() }
-            composable(Routes.CATEGORIES) { CategoriesScreen() }
-            composable(Routes.TAGS) { TagsScreen() }
+            composable(Routes.REPORTS) {
+                ReportsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.CATEGORIES) {
+                CategoriesScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.TAGS) {
+                TagsScreen(onBack = { navController.popBackStack() })
+            }
             composable(Routes.ACCOUNTS) {
                 AccountsScreen(
                     onAddAccount = { navController.navigate(Routes.ACCOUNT_EDIT) },
                     onEditAccount = { id ->
                         navController.navigate("${Routes.ACCOUNT_EDIT}?accountId=$id")
                     },
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
@@ -230,6 +245,7 @@ fun EndgameApp() {
             ) { entry ->
                 ReconcileScreen(
                     accountId = requireNotNull(entry.arguments?.getString("accountId")),
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

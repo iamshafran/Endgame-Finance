@@ -54,26 +54,36 @@ import java.util.Date
 
 @Composable
 fun ReportsScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: ReportsViewModel =
         viewModel(factory = ReportsViewModel.factory(LocalContext.current)),
 ) {
     var section by remember { mutableStateOf("range") }
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Reports",
+        onBack = onBack,
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            FilterChip(selected = section == "range",
-                onClick = { section = "range" }, label = { Text("Date range") })
-            FilterChip(selected = section == "yoy",
-                onClick = { section = "yoy" }, label = { Text("Year over year") })
-            FilterChip(selected = section == "merchants",
-                onClick = { section = "merchants" }, label = { Text("Merchants") })
-        }
-        when (section) {
-            "range" -> RangeTab(viewModel)
-            "yoy" -> YoyTab(viewModel)
-            else -> MerchantsTab(viewModel)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            ) {
+                FilterChip(selected = section == "range",
+                    onClick = { section = "range" }, label = { Text("Date range") })
+                FilterChip(selected = section == "yoy",
+                    onClick = { section = "yoy" }, label = { Text("Year over year") })
+                FilterChip(selected = section == "merchants",
+                    onClick = { section = "merchants" }, label = { Text("Merchants") })
+            }
+            when (section) {
+                "range" -> RangeTab(viewModel)
+                "yoy" -> YoyTab(viewModel)
+                else -> MerchantsTab(viewModel)
+            }
         }
     }
 }

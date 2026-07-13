@@ -44,7 +44,7 @@ class BackupManager(private val db: EndgameDatabase) {
                         row.accountName,
                         row.toAccountName ?: "",
                         row.categoryName ?: "",
-                        Money.format(row.amount).replace("$", ""),
+                        Money.formatPlain(row.amount),
                         row.amount.toString(),
                         row.notes ?: "",
                         if (row.isCleared) "yes" else "no",

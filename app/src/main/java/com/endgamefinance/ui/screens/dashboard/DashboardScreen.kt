@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.endgamefinance.ui.components.IconCatalog
 import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,29 +58,25 @@ fun DashboardScreen(
     val state by viewModel.uiState.collectAsState()
     val moneyColors = LocalMoneyColors.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Dashboard",
+        actions = {
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Filled.Search, contentDescription = "Search transactions")
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddTransaction) {
+                Icon(Icons.Filled.Add, contentDescription = "Add transaction")
+            }
+        },
+    ) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState()),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
-            IconButton(onClick = onSearch) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = "Search transactions",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
         state.safeToSpend?.let { SafeToSpendCard(it) }
 
         val snapshots by viewModel.snapshots.collectAsState()
@@ -240,17 +237,6 @@ fun DashboardScreen(
         }
         // Breathing room so the FAB never covers the last card
         Spacer(modifier = Modifier.height(72.dp))
-    }
-    androidx.compose.material3.FloatingActionButton(
-        onClick = onAddTransaction,
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(Spacing.md),
-    ) {
-        Icon(
-            androidx.compose.material.icons.Icons.Filled.Add,
-            contentDescription = "Add transaction",
-        )
     }
     }
 }

@@ -32,13 +32,24 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themeMode by AppSettings.get(this).themeMode.collectAsState()
+            val settings = AppSettings.get(this)
+            val themeMode by settings.themeMode.collectAsState()
             val darkTheme = when (themeMode) {
                 AppSettings.THEME_LIGHT -> false
                 AppSettings.THEME_DARK -> true
                 else -> isSystemInDarkTheme()
             }
-            EndgameTheme(darkTheme = darkTheme) {
+            // Push the chosen display currency into the formatter before children
+            // compose, so every Money.format() in this pass uses the new symbol.
+            val currencyCode by settings.currencyCode.collectAsState()
+            com.endgamefinance.util.Money.currencyCode = currencyCode
+            val paletteName by settings.palette.collectAsState()
+            val palette = runCatching {
+                com.endgamefinance.ui.theme.ThemePalette.valueOf(paletteName)
+            }.getOrDefault(com.endgamefinance.ui.theme.ThemePalette.DEFAULT)
+            val fontKey by settings.fontKey.collectAsState()
+            val font = com.endgamefinance.ui.theme.AppFont.fromKey(fontKey)
+            EndgameTheme(palette = palette, font = font, darkTheme = darkTheme) {
                 // Root Surface so every branch (lock, onboarding, app) inherits the
                 // themed background AND onSurface content color — a bare MaterialTheme
                 // does not set content color, only a Surface does.

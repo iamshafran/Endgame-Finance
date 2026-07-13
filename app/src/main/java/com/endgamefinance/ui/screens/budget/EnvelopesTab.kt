@@ -326,7 +326,7 @@ private fun EnvelopeEditDialog(
 ) {
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var targetText by remember {
-        mutableStateOf(existing?.targetAmount?.let { Money.format(it).replace("$", "") } ?: "")
+        mutableStateOf(existing?.targetAmount?.let { Money.formatPlain(it) } ?: "")
     }
     var accountId by remember { mutableStateOf(existing?.linkedAccountId) }
     var error by remember { mutableStateOf<String?>(null) }

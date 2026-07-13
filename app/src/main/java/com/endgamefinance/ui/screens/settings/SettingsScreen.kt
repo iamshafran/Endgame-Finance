@@ -29,19 +29,47 @@ import com.endgamefinance.ui.screens.budget.BudgetMode
 import com.endgamefinance.ui.screens.budget.BudgetPrefs
 import com.endgamefinance.ui.theme.Spacing
 
+/** Curated ISO 4217 list; formatted with 2 fraction digits regardless of native minor units. */
+private val commonCurrencies = listOf(
+    "USD" to "US Dollar",
+    "EUR" to "Euro",
+    "GBP" to "British Pound",
+    "JPY" to "Japanese Yen",
+    "CAD" to "Canadian Dollar",
+    "AUD" to "Australian Dollar",
+    "CHF" to "Swiss Franc",
+    "CNY" to "Chinese Yuan",
+    "INR" to "Indian Rupee",
+    "AED" to "UAE Dirham",
+    "SGD" to "Singapore Dollar",
+    "HKD" to "Hong Kong Dollar",
+    "NZD" to "New Zealand Dollar",
+    "ZAR" to "South African Rand",
+    "BRL" to "Brazilian Real",
+    "MXN" to "Mexican Peso",
+    "SEK" to "Swedish Krona",
+    "NOK" to "Norwegian Krone",
+    "DKK" to "Danish Krone",
+    "PLN" to "Polish Zloty",
+    "LKR" to "Sri Lankan Rupee",
+)
+
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onBack: (() -> Unit)? = null) {
     val context = LocalContext.current
     val settings = AppSettings.get(context)
     val themeMode by settings.themeMode.collectAsState()
 
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Settings",
+        onBack = onBack,
+    ) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState()),
     ) {
-        ScreenTitle("Settings")
-
         // ---- Appearance ----
         SettingsGroup("Appearance") {
             Text("Theme", style = MaterialTheme.typography.bodyLarge)
@@ -61,6 +89,65 @@ fun SettingsScreen() {
             }
             Text(
                 "System follows your device's light/dark setting.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            val paletteName by settings.palette.collectAsState()
+            Text(
+                "Palette",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+            com.endgamefinance.ui.components.DropdownField(
+                label = "Theme palette",
+                options = com.endgamefinance.ui.theme.ThemePalette.entries
+                    .map { it.name to it.label },
+                selectedId = paletteName,
+                onSelect = { picked -> picked?.let { settings.setPalette(it) } },
+            )
+            Text(
+                "Evergreen is the default. Cyberpunk 2077 and Marathon are bold, " +
+                    "game-inspired looks — each still honors your light/dark choice.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            val fontKey by settings.fontKey.collectAsState()
+            Text(
+                "Font",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+            com.endgamefinance.ui.components.DropdownField(
+                label = "App font",
+                options = com.endgamefinance.ui.theme.AppFont.entries
+                    .map { it.key to it.label },
+                selectedId = fontKey,
+                onSelect = { picked -> picked?.let { settings.setFontKey(it) } },
+            )
+            Text(
+                "IBM Plex Mono is the default. All bundled fonts are chosen for " +
+                    "readability; Atkinson Hyperlegible is designed for low-vision clarity. " +
+                    "Fonts ship with the app — nothing is downloaded.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // ---- Currency ----
+        val currencyCode by settings.currencyCode.collectAsState()
+        SettingsGroup("Currency") {
+            com.endgamefinance.ui.components.DropdownField(
+                label = "Display currency",
+                options = commonCurrencies.map { (code, name) -> code to "$code · $name" },
+                selectedId = currencyCode,
+                onSelect = { picked -> picked?.let { settings.setCurrencyCode(it) } },
+            )
+            Text(
+                "Changes the symbol and formatting only — it does not convert your " +
+                    "amounts (there's no exchange rate; the app stays offline). " +
+                    "Example: ${com.endgamefinance.util.Money.format(123456)}.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -120,6 +207,7 @@ fun SettingsScreen() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
     }
 }
 

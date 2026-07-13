@@ -29,13 +29,12 @@ fun MoreScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = "More",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(Spacing.md),
-        )
+    com.endgamefinance.ui.components.EndgameScaffold(title = "More") { innerPadding ->
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+    ) {
         HorizontalDivider()
         ListItem(
             headlineContent = { Text("Accounts") },
@@ -102,5 +101,6 @@ fun MoreScreen(
             modifier = Modifier.clickable(onClick = onOpenSettings),
         )
         HorizontalDivider()
+    }
     }
 }

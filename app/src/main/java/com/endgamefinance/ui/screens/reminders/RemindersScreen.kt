@@ -74,22 +74,37 @@ fun RemindersScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = "Reminders",
+        floatingActionButton = {
+            if (section == "bills") {
+                FloatingActionButton(onClick = onAddReminder) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add reminder")
+                }
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            FilterChip(selected = section == "bills",
-                onClick = { section = "bills" }, label = { Text("Bills") })
-            FilterChip(selected = section == "calendar",
-                onClick = { section = "calendar" }, label = { Text("Calendar") })
-            FilterChip(selected = section == "forecast",
-                onClick = { section = "forecast" }, label = { Text("Forecast") })
-        }
-        when (section) {
-            "bills" -> BillsTab(viewModel, onAddReminder, onEditReminder)
-            "calendar" -> CalendarTab(viewModel)
-            else -> ForecastTab(viewModel)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            ) {
+                FilterChip(selected = section == "bills",
+                    onClick = { section = "bills" }, label = { Text("Bills") })
+                FilterChip(selected = section == "calendar",
+                    onClick = { section = "calendar" }, label = { Text("Calendar") })
+                FilterChip(selected = section == "forecast",
+                    onClick = { section = "forecast" }, label = { Text("Forecast") })
+            }
+            when (section) {
+                "bills" -> BillsTab(viewModel, onAddReminder, onEditReminder)
+                "calendar" -> CalendarTab(viewModel)
+                else -> ForecastTab(viewModel)
+            }
         }
     }
 }
@@ -108,7 +123,7 @@ private fun BillsTab(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             if (state.due.isNotEmpty() || state.upcoming.isNotEmpty()) {
-                item(key = "planned_totals") {
+                item(key = "planned_totals_top") {
                     PlannedTotalsCard(state)
                 }
             }
@@ -167,14 +182,6 @@ private fun BillsTab(
                     )
                 }
             }
-        }
-        FloatingActionButton(
-            onClick = onAddReminder,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add reminder")
         }
     }
 

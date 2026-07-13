@@ -62,25 +62,25 @@ fun AccountEditScreen(
                 loaded = account
                 name = account.name
                 type = account.type
-                creditLimitText = account.creditLimit?.let { Money.format(it).removePrefix("$") } ?: ""
+                creditLimitText = account.creditLimit?.let { Money.formatPlain(it) } ?: ""
                 principalText =
-                    account.originalPrincipal?.let { Money.format(it).removePrefix("$") } ?: ""
+                    account.originalPrincipal?.let { Money.formatPlain(it) } ?: ""
             }
         }
     }
 
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = if (isEditing) "Edit account" else "New account",
+        onBack = onDone,
+    ) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState())
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            text = if (isEditing) "Edit account" else "New account",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -229,5 +229,6 @@ fun AccountEditScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
     }
 }

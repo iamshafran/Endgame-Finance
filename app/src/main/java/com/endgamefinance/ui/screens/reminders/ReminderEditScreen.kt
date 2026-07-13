@@ -87,7 +87,7 @@ fun ReminderEditScreen(
                 accountId = r.accountId
                 toAccountId = r.toAccountId
                 categoryId = r.categoryId
-                amountText = r.amount?.let { Money.format(it).replace("$", "") } ?: ""
+                amountText = r.amount?.let { Money.formatPlain(it) } ?: ""
                 frequency = r.frequency
                 interval = r.frequencyInterval
                 dueDate = r.nextDueDate
@@ -96,18 +96,18 @@ fun ReminderEditScreen(
         }
     }
 
+    com.endgamefinance.ui.components.EndgameScaffold(
+        title = if (isEditing) "Edit reminder" else "New reminder",
+        onBack = onDone,
+    ) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState())
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            if (isEditing) "Edit reminder" else "New reminder",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -262,6 +262,7 @@ fun ReminderEditScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Delete reminder", color = MaterialTheme.colorScheme.error) }
         }
+    }
     }
 
     if (showDatePicker) {
