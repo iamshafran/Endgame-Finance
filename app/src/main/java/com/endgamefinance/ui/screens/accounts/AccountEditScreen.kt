@@ -51,6 +51,7 @@ fun AccountEditScreen(
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(Account.TYPE_ASSET) }
     var creditLimitText by remember { mutableStateOf("") }
+    var principalText by remember { mutableStateOf("") }
     var startingBalanceText by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -61,6 +62,8 @@ fun AccountEditScreen(
                 name = account.name
                 type = account.type
                 creditLimitText = account.creditLimit?.let { Money.format(it).removePrefix("$") } ?: ""
+                principalText =
+                    account.originalPrincipal?.let { Money.format(it).removePrefix("$") } ?: ""
             }
         }
     }
@@ -102,6 +105,16 @@ fun AccountEditScreen(
                 value = creditLimitText,
                 onValueChange = { creditLimitText = it },
                 label = { Text("Credit limit (optional)") },
+                supportingText = { Text("For revolving credit like cards — shows utilization") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = principalText,
+                onValueChange = { principalText = it },
+                label = { Text("Original loan amount (optional)") },
+                supportingText = { Text("For loans — shows payoff progress") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
@@ -154,9 +167,23 @@ fun AccountEditScreen(
                             return@Button
                         }
                     }
+                val originalPrincipal = principalText.trim()
+                    .takeIf { it.isNotEmpty() && type == Account.TYPE_LIABILITY }
+                    ?.let {
+                        Money.parse(it) ?: run {
+                            error = "Original loan amount is not a valid amount"
+                            return@Button
+                        }
+                    }
                 if (isEditing) {
                     val base = loaded ?: return@Button
-                    viewModel.updateAccount(base.copy(name = trimmed, creditLimit = creditLimit))
+                    viewModel.updateAccount(
+                        base.copy(
+                            name = trimmed,
+                            creditLimit = creditLimit,
+                            originalPrincipal = originalPrincipal,
+                        ),
+                    )
                 } else {
                     val entered = startingBalanceText.trim()
                         .takeIf { it.isNotEmpty() }
@@ -170,7 +197,7 @@ fun AccountEditScreen(
                     // the signed convention; a negative debt entry = overpayment credit.
                     val initialBalance =
                         if (type == Account.TYPE_LIABILITY) -entered else entered
-                    viewModel.createAccount(trimmed, type, creditLimit, initialBalance)
+                    viewModel.createAccount(trimmed, type, creditLimit, originalPrincipal, initialBalance)
                 }
                 onDone()
             },

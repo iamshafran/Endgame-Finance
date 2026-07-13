@@ -32,6 +32,7 @@ CREATE TABLE accounts (
     name TEXT NOT NULL,
     type TEXT NOT NULL,          -- 'asset', 'liability', 'investment'
     credit_limit INTEGER,        -- NULL unless type='liability' and it's a credit line
+    original_principal INTEGER,  -- NULL unless type='liability' loan; cents. Added in DB v3 (owner-approved, 2026-07-13) for payoff-progress display
     currency TEXT DEFAULT 'USD',
     is_active INTEGER DEFAULT 1
 );

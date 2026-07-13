@@ -12,6 +12,8 @@ data class Account(
     @ColumnInfo(name = "type") val type: String,
     /** NULL unless type='liability' and it's a credit line. Cents. */
     @ColumnInfo(name = "credit_limit") val creditLimit: Long? = null,
+    /** NULL unless type='liability' loan; the loan's original size in cents. Added in DB v3. */
+    @ColumnInfo(name = "original_principal") val originalPrincipal: Long? = null,
     @ColumnInfo(name = "currency", defaultValue = "USD") val currency: String = "USD",
     @ColumnInfo(name = "is_active", defaultValue = "1") val isActive: Boolean = true,
 ) {

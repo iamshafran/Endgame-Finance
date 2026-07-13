@@ -27,12 +27,19 @@ object DatabaseProvider {
         }
     }
 
+    /** v3: accounts gained original_principal for loan payoff progress (documented in CLAUDE.md). */
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE accounts ADD COLUMN original_principal INTEGER")
+        }
+    }
+
     private fun build(context: Context): EndgameDatabase {
         System.loadLibrary("sqlcipher")
         val passphrase = DbKeyManager.getOrCreatePassphrase(context)
         return Room.databaseBuilder(context, EndgameDatabase::class.java, DB_NAME)
             .openHelperFactory(SupportOpenHelperFactory(passphrase))
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
     }
 }

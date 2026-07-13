@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -121,32 +122,73 @@ private fun NetWorthHeader(netWorthCents: Long) {
 @Composable
 private fun AccountRow(item: AccountWithBalance, onClick: () -> Unit) {
     val moneyColors = LocalMoneyColors.current
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = item.account.name,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            item.account.creditLimit?.let { limit ->
-                Text(
-                    text = "Limit ${Money.format(limit)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = Money.format(item.balance),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (item.balance >= 0) moneyColors.gain else moneyColors.loss,
+            )
         }
-        Text(
-            text = Money.format(item.balance),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (item.balance >= 0) moneyColors.gain else moneyColors.loss,
-        )
+        val principal = item.account.originalPrincipal
+        if (item.account.type == Account.TYPE_LIABILITY &&
+            item.account.creditLimit == null && principal != null && principal > 0
+        ) {
+            // Loan payoff: how much of the original principal is gone
+            val debt = (-item.balance).coerceAtLeast(0)
+            val paidOff = (principal - debt).coerceAtLeast(0)
+            val progress = paidOff.toFloat() / principal
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                color = moneyColors.gain,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
+            )
+            Text(
+                text = "Paid off ${(progress * 100).toInt()}% of ${Money.format(principal)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+        }
+        val limit = item.account.creditLimit
+        if (limit != null && limit > 0 && item.account.type == Account.TYPE_LIABILITY) {
+            // Debt is a negative balance; a positive (overpaid) balance is 0% utilization
+            val debt = (-item.balance).coerceAtLeast(0)
+            val utilization = debt.toFloat() / limit
+            LinearProgressIndicator(
+                progress = { utilization.coerceIn(0f, 1f) },
+                color = when {
+                    utilization >= 0.9f -> moneyColors.loss
+                    utilization >= 0.5f -> MaterialTheme.colorScheme.tertiary
+                    else -> MaterialTheme.colorScheme.primary
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
+            )
+            Text(
+                text = "${(utilization * 100).toInt()}% of ${Money.format(limit)} limit used",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (utilization > 1f) moneyColors.loss
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+        }
     }
 }

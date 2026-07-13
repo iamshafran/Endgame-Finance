@@ -22,7 +22,7 @@ import com.endgamefinance.data.db.entity.TransactionSplit
 import com.endgamefinance.data.db.entity.TransactionTag
 
 @Database(
-    version = 2,
+    version = 3,
     exportSchema = true,
     entities = [
         Account::class,

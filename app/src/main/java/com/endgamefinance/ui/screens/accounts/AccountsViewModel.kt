@@ -35,7 +35,13 @@ class AccountsViewModel(private val db: EndgameDatabase) : ViewModel() {
     suspend fun getAccount(id: String): Account? = db.accountDao().getById(id)
 
     /** [initialBalanceCents] is signed, in the app's convention (debt/overdraft negative). */
-    fun createAccount(name: String, type: String, creditLimitCents: Long?, initialBalanceCents: Long) {
+    fun createAccount(
+        name: String,
+        type: String,
+        creditLimitCents: Long?,
+        originalPrincipalCents: Long?,
+        initialBalanceCents: Long,
+    ) {
         viewModelScope.launch {
             repo.createAccount(
                 Account(
@@ -43,6 +49,7 @@ class AccountsViewModel(private val db: EndgameDatabase) : ViewModel() {
                     name = name.trim(),
                     type = type,
                     creditLimit = creditLimitCents,
+                    originalPrincipal = originalPrincipalCents,
                 ),
                 initialBalanceCents = initialBalanceCents,
             )
