@@ -6,9 +6,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -35,11 +39,19 @@ class MainActivity : FragmentActivity() {
                 else -> isSystemInDarkTheme()
             }
             EndgameTheme(darkTheme = darkTheme) {
-                val isLocked by locked
-                if (isLocked) {
-                    LockScreen(onUnlock = ::showUnlockPrompt)
-                } else {
-                    OnboardingGate { EndgameApp() }
+                // Root Surface so every branch (lock, onboarding, app) inherits the
+                // themed background AND onSurface content color — a bare MaterialTheme
+                // does not set content color, only a Surface does.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    val isLocked by locked
+                    if (isLocked) {
+                        LockScreen(onUnlock = ::showUnlockPrompt)
+                    } else {
+                        OnboardingGate { EndgameApp() }
+                    }
                 }
             }
         }
