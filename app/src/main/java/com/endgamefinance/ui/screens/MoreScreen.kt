@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +29,8 @@ fun MoreScreen(
     onOpenTags: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAssistant: () -> Unit,
+    onOpenReceiptScan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     com.endgamefinance.ui.components.EndgameScaffold(title = "More") { innerPadding ->
@@ -60,6 +64,32 @@ fun MoreScreen(
                 )
             },
             modifier = Modifier.clickable(onClick = onOpenCategories),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("AI Assistant") },
+            supportingContent = { Text("Ask questions about your finances (on-device)") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenAssistant),
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Scan a receipt") },
+            supportingContent = { Text("Photograph a receipt; split it across categories (on-device)") },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Filled.PhotoCamera,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.clickable(onClick = onOpenReceiptScan),
         )
         HorizontalDivider()
         ListItem(

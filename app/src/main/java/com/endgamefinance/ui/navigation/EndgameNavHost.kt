@@ -126,6 +126,7 @@ fun EndgameApp() {
                 DashboardScreen(
                     onSearch = { navController.navigate(Routes.SEARCH) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenAssistant = { navController.navigate(Routes.ASSISTANT) },
                     onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
                 )
             }
@@ -196,13 +197,41 @@ fun EndgameApp() {
                     onOpenTags = { navController.navigate(Routes.TAGS) },
                     onOpenReports = { navController.navigate(Routes.REPORTS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenAssistant = { navController.navigate(Routes.ASSISTANT) },
+                    onOpenReceiptScan = { navController.navigate(Routes.RECEIPT_SCAN) },
+                )
+            }
+            composable(Routes.RECEIPT_SCAN) {
+                com.endgamefinance.ui.screens.receipt.ReceiptScanScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ASSISTANT) {
+                com.endgamefinance.ui.screens.assistant.AssistantScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
             composable(Routes.REPORTS) {
                 ReportsScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenImport = { navController.navigate(Routes.IMPORT) },
+                    onOpenCapture = { navController.navigate(Routes.CAPTURE) },
+                )
+            }
+            composable(Routes.CAPTURE) {
+                com.endgamefinance.ui.screens.notify.NotificationCaptureScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.IMPORT) {
+                com.endgamefinance.ui.screens.importer.ImportScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                )
             }
             composable(Routes.CATEGORIES) {
                 CategoriesScreen(onBack = { navController.popBackStack() })

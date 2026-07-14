@@ -180,6 +180,119 @@ class LedgerRepository(private val db: EndgameDatabase) {
     suspend fun deleteTransaction(transactionId: String) =
         db.transactionDao().deleteById(transactionId)
 
+    // ---------------- bulk (multi-select) operations ----------------
+
+    private fun auditRow(txId: String, field: String, old: String?, new: String?, at: Long) =
+        TransactionAudit(
+            id = UUID.randomUUID().toString(),
+            transactionId = txId,
+            fieldName = field,
+            oldValue = old,
+            newValue = new,
+            changedAt = at,
+        )
+
+    /** Bulk hard delete after confirmation. */
+    suspend fun deleteTransactions(ids: List<String>) {
+        if (ids.isEmpty()) return
+        db.withTransaction { db.transactionDao().deleteByIds(ids) }
+    }
+
+    /** Bulk cleared/uncleared with an audit row per changed transaction. */
+    suspend fun setClearedBulk(ids: List<String>, cleared: Boolean) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            val now = System.currentTimeMillis()
+            val audits = mutableListOf<TransactionAudit>()
+            for (id in ids) {
+                val old = db.transactionDao().getById(id) ?: continue
+                if (old.isCleared == cleared) continue
+                db.transactionDao().updateTransaction(old.copy(isCleared = cleared))
+                audits += auditRow(
+                    id, "is_cleared",
+                    if (old.isCleared) "cleared" else "uncleared",
+                    if (cleared) "cleared" else "uncleared", now,
+                )
+            }
+            if (audits.isNotEmpty()) db.transactionDao().insertAuditRows(audits)
+        }
+    }
+
+    /** Bulk shared/reimbursable flag with an audit row per changed transaction. */
+    suspend fun setSharedBulk(ids: List<String>, shared: Boolean) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            val now = System.currentTimeMillis()
+            val audits = mutableListOf<TransactionAudit>()
+            for (id in ids) {
+                val old = db.transactionDao().getById(id) ?: continue
+                if (old.isShared == shared) continue
+                db.transactionDao().updateTransaction(old.copy(isShared = shared))
+                audits += auditRow(
+                    id, "is_shared",
+                    if (old.isShared) "shared" else "not shared",
+                    if (shared) "shared" else "not shared", now,
+                )
+            }
+            if (audits.isNotEmpty()) db.transactionDao().insertAuditRows(audits)
+        }
+    }
+
+    /** Result of a bulk category change: how many were re-categorized vs skipped
+     *  (transfers and multi-split transactions can't take a single category). */
+    data class BulkCategoryResult(val applied: Int, val skipped: Int)
+
+    suspend fun setCategoryBulk(ids: List<String>, categoryId: String?): BulkCategoryResult {
+        if (ids.isEmpty()) return BulkCategoryResult(0, 0)
+        var applied = 0
+        var skipped = 0
+        db.withTransaction {
+            val now = System.currentTimeMillis()
+            val names = db.categoryDao().getAllOnce().associate { it.id to it.name }
+            val newName = categoryId?.let { names[it] } ?: "Uncategorized"
+            val audits = mutableListOf<TransactionAudit>()
+            for (id in ids) {
+                val tx = db.transactionDao().getById(id) ?: continue
+                val splits = db.transactionDao().splitsFor(id)
+                // Only single-split, non-transfer rows take an unambiguous category.
+                if (tx.type == "transfer" || splits.size != 1) {
+                    skipped++
+                    continue
+                }
+                val old = splits.first()
+                val oldName = old.categoryId?.let { names[it] } ?: "Uncategorized"
+                if (old.categoryId == categoryId) continue
+                db.transactionDao().setSplitCategoryFor(id, categoryId)
+                audits += auditRow(
+                    id, "categories",
+                    "$oldName ${Money.format(old.amount)}",
+                    "$newName ${Money.format(old.amount)}", now,
+                )
+                applied++
+            }
+            if (audits.isNotEmpty()) db.transactionDao().insertAuditRows(audits)
+        }
+        return BulkCategoryResult(applied, skipped)
+    }
+
+    /** Adds [tagId] to every selected transaction (already-tagged rows are left as-is). */
+    suspend fun addTagBulk(ids: List<String>, tagId: String) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            db.transactionDao().insertTransactionTagsIgnore(
+                ids.map { TransactionTag(transactionId = it, tagId = tagId) },
+            )
+        }
+    }
+
+    /** Removes [tagId] from every selected transaction. */
+    suspend fun removeTagBulk(ids: List<String>, tagId: String) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            for (id in ids) db.transactionDao().removeTagLink(id, tagId)
+        }
+    }
+
     suspend fun updateAccount(account: Account) = db.accountDao().update(account)
 
     /** "Delete" for accounts is archival — history must survive. */

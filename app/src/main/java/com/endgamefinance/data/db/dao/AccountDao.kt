@@ -81,6 +81,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getById(id: String): Account?
 
+    @Query("SELECT * FROM accounts")
+    suspend fun getAllOnce(): List<Account>
+
     @Query("SELECT * FROM accounts WHERE is_active = 1 ORDER BY type, name")
     fun observeActive(): Flow<List<Account>>
 

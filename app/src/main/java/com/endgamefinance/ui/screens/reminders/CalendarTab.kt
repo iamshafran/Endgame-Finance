@@ -1,8 +1,9 @@
 package com.endgamefinance.ui.screens.reminders
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,10 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -101,6 +106,7 @@ fun CalendarTab(viewModel: RemindersViewModel) {
                         isSelected = day != null && day.date == selected,
                         color = day?.let { momentumColor(it.momentum) } ?: Color.Transparent,
                         onClick = { day?.let { selected = it.date } },
+                        onLongClick = { day?.let { viewModel.explainDay(it) } },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -122,7 +128,8 @@ fun CalendarTab(viewModel: RemindersViewModel) {
             LegendDot(MaterialTheme.colorScheme.tertiary, "upcoming")
         }
         Text(
-            text = "Momentum vs your ${Money.format(state.avgDailySpend)}/day 90-day average",
+            text = "Momentum vs your ${Money.format(state.avgDailySpend)}/day 90-day average. " +
+                "Long-press a day to ask why you spent.",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.md),
@@ -134,14 +141,64 @@ fun CalendarTab(viewModel: RemindersViewModel) {
             }
         }
     }
+
+    ExplainSheet(viewModel)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExplainSheet(viewModel: RemindersViewModel) {
+    val explain by viewModel.explain.collectAsState()
+    val state = explain ?: return
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = { viewModel.dismissExplain() },
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg),
+        ) {
+            Text(
+                "Why did I spend on ${state.dateLabel}?",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Box(modifier = Modifier.padding(top = Spacing.md)) {
+                when {
+                    state.loading -> Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(
+                            "Reading that day's purchases…",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    state.error != null -> Text(
+                        state.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    else -> Text(
+                        state.text.orEmpty(),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayCell(
     day: CalendarDay?,
     isSelected: Boolean,
     color: Color,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val moneyColors = LocalMoneyColors.current
@@ -155,7 +212,11 @@ private fun DayCell(
                     2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp),
                 ) else Modifier,
             )
-            .clickable(enabled = day != null, onClick = onClick),
+            .combinedClickable(
+                enabled = day != null,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         if (day != null) {

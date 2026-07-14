@@ -614,7 +614,18 @@ fun TransactionEntryScreen(
                         },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+                        keyboardActions = KeyboardActions(onDone = {
+                            keyboard?.hide()
+                            // Auto-category from history (M7.4): a new payee that
+                            // resembles a known one prefills its category.
+                            if (categoryId == null && payee.isNotBlank()) {
+                                scope.launch {
+                                    viewModel.prefillForPayee(payee).categoryId?.let {
+                                        categoryId = it
+                                    }
+                                }
+                            }
+                        }),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (!suppressSuggestions && payeeSuggestions.isNotEmpty()) {

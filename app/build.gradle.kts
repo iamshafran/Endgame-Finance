@@ -37,6 +37,15 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        jniLibs {
+            // Qualcomm NPU: the Hexagon DSP skel (libQnnHtpV79Skel.so) must be a
+            // real file on disk so the DSP loader can find it via the app's native
+            // library dir (ADSP_LIBRARY_PATH). Legacy packaging = extractNativeLibs,
+            // which unpacks all bundled .so into /data/app/.../lib/arm64.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 ksp {
@@ -60,6 +69,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment)
+    implementation(libs.litertlm.android)
+    implementation(libs.mlkit.text.recognition)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.room.runtime)

@@ -55,7 +55,11 @@ private val commonCurrencies = listOf(
 )
 
 @Composable
-fun SettingsScreen(onBack: (() -> Unit)? = null) {
+fun SettingsScreen(
+    onBack: (() -> Unit)? = null,
+    onOpenImport: (() -> Unit)? = null,
+    onOpenCapture: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val settings = AppSettings.get(context)
     val themeMode by settings.themeMode.collectAsState()
@@ -180,6 +184,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             )
         }
 
+        // ---- AI ----
+        SettingsGroup("AI assistant") {
+            AiModelSetting()
+        }
+
         // ---- Security ----
         SettingsGroup("Security") {
             AppLockSettings()
@@ -191,6 +200,40 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             BackupSection()
         }
 
+        // ---- Migration ----
+        if (onOpenImport != null) {
+            SettingsGroup("Migrate") {
+                Text(
+                    "Coming from Bluecoins? Import its .fydb backup directly — " +
+                        "accounts, transfers, and reminders come across exactly. A " +
+                        "plain CSV export works too (the on-device AI maps its columns).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onOpenImport,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Import from Bluecoins") }
+            }
+        }
+
+        // ---- Notification capture (Milestone 8.1) ----
+        if (onOpenCapture != null) {
+            SettingsGroup("Automatic capture") {
+                Text(
+                    "Let Endgame draft transactions from your bank and card app " +
+                        "notifications. You pick the apps, confirm each one, and it's " +
+                        "all parsed on-device — nothing leaves your phone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onOpenCapture,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Set up notification capture") }
+            }
+        }
+
         // ---- About / privacy ----
         SettingsGroup("About") {
             InfoRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
@@ -200,9 +243,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                "Endgame Finance has no internet permission — your data never leaves " +
-                    "this device. The database is encrypted at rest, and backups are " +
-                    "password-protected files you control.",
+                "Your data never leaves this device: no analytics, no telemetry, no " +
+                    "sync. The database is encrypted at rest, and backups are " +
+                    "password-protected files you control. The app's only network use " +
+                    "is the optional AI model download you start in the AI section — " +
+                    "AI inference then runs fully on-device, offline.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

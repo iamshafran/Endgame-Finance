@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.Alignment
@@ -51,6 +52,7 @@ import java.util.Date
 fun DashboardScreen(
     onSearch: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAssistant: () -> Unit,
     onAddTransaction: () -> Unit,
     viewModel: DashboardViewModel =
         viewModel(factory = DashboardViewModel.factory(LocalContext.current)),
@@ -61,6 +63,9 @@ fun DashboardScreen(
     com.endgamefinance.ui.components.EndgameScaffold(
         title = "Dashboard",
         actions = {
+            IconButton(onClick = onOpenAssistant) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = "AI assistant")
+            }
             IconButton(onClick = onSearch) {
                 Icon(Icons.Filled.Search, contentDescription = "Search transactions")
             }

@@ -9,6 +9,10 @@ import com.endgamefinance.data.db.entity.TransactionAudit
 import com.endgamefinance.data.db.entity.TransactionEntity
 import com.endgamefinance.data.db.entity.TransactionSplit
 import com.endgamefinance.data.db.entity.TransactionTag
+import com.endgamefinance.data.db.model.DaySpendLine
+import com.endgamefinance.data.db.model.LoanPaymentHistory
+import com.endgamefinance.data.db.model.PayeeAccount
+import com.endgamefinance.data.db.model.PayeeCategory
 import com.endgamefinance.data.db.model.TransactionListItem
 import kotlinx.coroutines.flow.Flow
 
@@ -32,6 +36,93 @@ interface TransactionDao {
         insertTransaction(transaction)
         insertSplits(splits)
     }
+
+    /** Import dedupe: does an identical-looking transaction already exist? */
+    @Query(
+        """
+        SELECT COUNT(*) FROM transactions t
+        JOIN transaction_splits s ON s.transaction_id = t.id
+        WHERE t.account_id = :accountId AND t.timestamp = :timestamp
+          AND t.payee = :payee AND s.amount = :amountCents
+        """,
+    )
+    suspend fun countSimilar(
+        accountId: String,
+        timestamp: Long,
+        payee: String,
+        amountCents: Long,
+    ): Int
+
+    /** Candidate legs for the import repair pass: uncategorized plain rows
+     *  that may be halves of a transfer that was imported as expense+income. */
+    @Query(
+        """
+        SELECT t.id AS id, t.type AS type, t.account_id AS accountId,
+               t.payee AS payee, t.timestamp AS timestamp, s.amount AS amountCents
+        FROM transactions t
+        JOIN transaction_splits s ON s.transaction_id = t.id
+        WHERE t.type IN ('expense','income') AND s.category_id IS NULL
+          AND t.to_account_id IS NULL AND t.payee != 'Starting Balance'
+        """,
+    )
+    suspend fun uncategorizedPlainLegs(): List<com.endgamefinance.data.db.model.RepairLeg>
+
+    /** Historical (payee, category) pairs feeding the auto-category profile. */
+    @Query(
+        """
+        SELECT t.payee AS payee, s.category_id AS categoryId
+        FROM transactions t
+        JOIN transaction_splits s ON s.transaction_id = t.id
+        WHERE s.category_id IS NOT NULL AND t.payee != 'Starting Balance'
+        """,
+    )
+    suspend fun payeeCategoryHistory(): List<PayeeCategory>
+
+    /** Historical (payee, account) pairs feeding the notification-capture
+     *  account guesser. Only non-transfer money movements count. */
+    @Query(
+        """
+        SELECT t.payee AS payee, t.account_id AS accountId
+        FROM transactions t
+        WHERE t.type IN ('expense','income') AND t.payee != 'Starting Balance'
+        """,
+    )
+    suspend fun payeeAccountHistory(): List<PayeeAccount>
+
+    /** Expense line items on a given day (for the calendar anomaly explanation),
+     *  biggest first. Each row is one transaction with its total and first category. */
+    @Query(
+        """
+        SELECT t.payee AS payee,
+               (SELECT c.name FROM transaction_splits s
+                JOIN categories c ON c.id = s.category_id
+                WHERE s.transaction_id = t.id LIMIT 1) AS category,
+               COALESCE((SELECT SUM(s.amount) FROM transaction_splits s
+                         WHERE s.transaction_id = t.id), 0) AS amountCents
+        FROM transactions t
+        WHERE t.type = 'expense' AND t.timestamp >= :startMs AND t.timestamp < :endMs
+        ORDER BY amountCents DESC
+        """,
+    )
+    suspend fun daySpendLines(startMs: Long, endMs: Long): List<DaySpendLine>
+
+    /** Prior payments against a loan (transfers into the liability), newest first.
+     *  A loan payment's interest portion is its categorized split; principal is
+     *  the category-less split. Feeds the interest-estimate (Milestone 8.4). */
+    @Query(
+        """
+        SELECT t.timestamp AS timestamp,
+               COALESCE(SUM(s.amount), 0) AS totalCents,
+               COALESCE(SUM(CASE WHEN s.category_id IS NOT NULL THEN s.amount ELSE 0 END), 0) AS interestCents
+        FROM transactions t
+        JOIN transaction_splits s ON s.transaction_id = t.id
+        WHERE t.type = 'transfer' AND t.to_account_id = :loanAccountId
+        GROUP BY t.id
+        ORDER BY t.timestamp DESC
+        LIMIT 12
+        """,
+    )
+    suspend fun loanPaymentHistory(loanAccountId: String): List<LoanPaymentHistory>
 
     /**
      * Filterable ledger. Null/empty filters are no-ops. The amount range
@@ -164,12 +255,28 @@ interface TransactionDao {
     @Query("DELETE FROM transaction_tags WHERE transaction_id = :transactionId")
     suspend fun deleteTagLinksFor(transactionId: String)
 
+    /** Bulk tag add — duplicates (already-tagged rows) are ignored, not errored. */
+    @Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    suspend fun insertTransactionTagsIgnore(links: List<TransactionTag>)
+
+    @Query("DELETE FROM transaction_tags WHERE transaction_id = :transactionId AND tag_id = :tagId")
+    suspend fun removeTagLink(transactionId: String, tagId: String)
+
+    /** Bulk category re-assign. Only meaningful for single-split rows (the caller
+     *  guards against transfers and multi-split transactions). */
+    @Query("UPDATE transaction_splits SET category_id = :categoryId WHERE transaction_id = :transactionId")
+    suspend fun setSplitCategoryFor(transactionId: String, categoryId: String?)
+
     @Query("SELECT tag_id FROM transaction_tags WHERE transaction_id = :transactionId")
     suspend fun tagIdsFor(transactionId: String): List<String>
 
     /** Hard delete; splits, tag links, and audit history cascade away with it. */
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    /** Bulk hard delete; cascades take splits/tags/audit for each id. */
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
 
     @Insert
     suspend fun insertAuditRows(rows: List<TransactionAudit>)

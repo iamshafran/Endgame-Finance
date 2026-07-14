@@ -41,6 +41,8 @@ data class ReminderUi(
     val isDue: Boolean,
     /** Strictly past its due day — shown in error color. */
     val isOverdue: Boolean,
+    /** Destination is a loan liability — posting offers a principal/interest split. */
+    val isLoanPayment: Boolean = false,
 )
 
 data class RemindersUiState(
@@ -87,6 +89,7 @@ class RemindersViewModel(
 ) : ViewModel() {
 
     private val repo = ReminderRepository(db)
+    private val appContext = context.applicationContext
     private val prefs = context.getSharedPreferences("reminder_prefs", Context.MODE_PRIVATE)
     private val _dismissedPayees = MutableStateFlow(
         prefs.getStringSet("dismissed_suggestions", emptySet())?.toSet() ?: emptySet(),
@@ -199,6 +202,63 @@ class RemindersViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CalendarUiState())
 
+    /** On-device explanation for a long-pressed calendar day (Milestone 8.3). */
+    data class ExplainState(
+        val dateLabel: String,
+        val loading: Boolean,
+        val text: String? = null,
+        val error: String? = null,
+    )
+
+    private val _explain = MutableStateFlow<ExplainState?>(null)
+    val explain: StateFlow<ExplainState?> = _explain.asStateFlow()
+    fun dismissExplain() { _explain.value = null }
+
+    fun explainDay(day: CalendarDay) {
+        if (day.spent <= 0) return
+        val label = day.date.toString()
+        _explain.value = ExplainState(label, loading = true)
+        viewModelScope.launch {
+            try {
+                if (!com.endgamefinance.data.ai.AiModel.isReady(appContext)) {
+                    _explain.value = ExplainState(
+                        label, false,
+                        error = "Download the AI model first (More → AI assistant).",
+                    )
+                    return@launch
+                }
+                val zone = ZoneId.systemDefault()
+                val startMs = day.date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val endMs = day.date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                val lines = db.transactionDao().daySpendLines(startMs, endMs)
+                if (lines.isEmpty()) {
+                    _explain.value = ExplainState(
+                        label, false,
+                        text = "No itemised expenses are recorded for this day.",
+                    )
+                    return@launch
+                }
+                val text = com.endgamefinance.data.ai.AnomalyExplainer.explain(
+                    appContext,
+                    com.endgamefinance.data.ai.AnomalyExplainer.DayContext(
+                        dateLabel = label,
+                        spentCents = day.spent,
+                        avgDailyCents = calendarState.value.avgDailySpend,
+                        lines = lines,
+                    ),
+                )
+                _explain.value = ExplainState(
+                    label, false,
+                    text = text.ifBlank { "Couldn't generate an explanation — try again." },
+                )
+            } catch (e: Exception) {
+                _explain.value = ExplainState(
+                    label, false, error = e.message ?: "Something went wrong.",
+                )
+            }
+        }
+    }
+
     fun dismissSuggestion(suggestion: RecurringSuggestion) {
         val updated = _dismissedPayees.value + suggestion.payee.lowercase()
         _dismissedPayees.value = updated
@@ -238,9 +298,11 @@ class RemindersViewModel(
             val startOfToday = LocalDate.now().atStartOfDay(zone).toInstant().toEpochMilli()
             val endOfToday = LocalDate.now().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
             val accountNames = accounts.associateBy({ it.id }, { it.name })
+            val accountsById = accounts.associateBy { it.id }
             val categoriesById = categories.associateBy { it.id }
             val ui = reminders.map { r ->
                 val category = r.categoryId?.let { categoriesById[it] }
+                val destination = r.toAccountId?.let { accountsById[it] }
                 ReminderUi(
                     reminder = r,
                     accountName = accountNames[r.accountId] ?: "(archived account)",
@@ -250,6 +312,9 @@ class RemindersViewModel(
                         category?.type == com.endgamefinance.data.db.entity.Category.TYPE_INCOME,
                     isDue = r.nextDueDate < endOfToday,
                     isOverdue = r.nextDueDate < startOfToday,
+                    isLoanPayment = destination?.type ==
+                        com.endgamefinance.data.db.entity.Account.TYPE_LIABILITY &&
+                        destination.originalPrincipal != null,
                 )
             }
             RemindersUiState(
@@ -288,6 +353,43 @@ class RemindersViewModel(
 
     fun skip(reminder: Reminder) {
         viewModelScope.launch { repo.skip(reminder) }
+    }
+
+    /** Estimates this payment's interest from the loan's history (Milestone 8.4). */
+    suspend fun estimateLoanInterest(
+        loanAccountId: String,
+        paymentCents: Long,
+    ): com.endgamefinance.data.ai.LoanInterestEstimator.Estimate {
+        val history = db.transactionDao().loanPaymentHistory(loanAccountId)
+        return com.endgamefinance.data.ai.LoanInterestEstimator.estimate(
+            appContext, paymentCents, history,
+        )
+    }
+
+    /** A reasonable default interest category (named like interest/finance/borrowing). */
+    fun defaultInterestCategoryId(): String? {
+        val expense = categories.value.filter {
+            it.type == com.endgamefinance.data.db.entity.Category.TYPE_EXPENSE
+        }
+        val keywords = listOf("interest", "finance", "borrow", "loan")
+        return expense.firstOrNull { c ->
+            keywords.any { c.name.contains(it, ignoreCase = true) }
+        }?.id
+    }
+
+    fun postLoanPayment(
+        reminder: Reminder,
+        paymentCents: Long,
+        interestCents: Long,
+        interestCategoryId: String?,
+    ) {
+        viewModelScope.launch {
+            try {
+                repo.postLoanPayment(reminder, paymentCents, interestCents, interestCategoryId)
+            } catch (e: IllegalArgumentException) {
+                _message.value = e.message
+            }
+        }
     }
 
     suspend fun getReminder(id: String): Reminder? = db.reminderDao().getById(id)
