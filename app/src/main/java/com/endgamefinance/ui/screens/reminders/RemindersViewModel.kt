@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -201,6 +202,37 @@ class RemindersViewModel(
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CalendarUiState())
+
+    /** Actuals for a selected PAST day: its transactions + end-of-day balances. */
+    data class PastDayDetail(
+        val date: LocalDate,
+        val transactions: List<com.endgamefinance.data.db.model.TransactionListItem>,
+        val balances: List<com.endgamefinance.data.db.model.AccountWithBalance>,
+    )
+
+    private val _selectedDate = MutableStateFlow<LocalDate?>(null)
+    fun selectDay(date: LocalDate?) { _selectedDate.value = date }
+
+    val pastDayDetail: StateFlow<PastDayDetail?> =
+        _selectedDate.flatMapLatest { date ->
+            if (date == null || !date.isBefore(LocalDate.now())) {
+                kotlinx.coroutines.flow.flowOf(null)
+            } else {
+                val zone = ZoneId.systemDefault()
+                val start = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val end = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                db.transactionDao().observeFiltered(
+                    accountId = null, payeeQuery = "", categoryId = null,
+                    minCents = null, maxCents = null, startMs = start, endMs = end,
+                ).map { transactions ->
+                    PastDayDetail(
+                        date = date,
+                        transactions = transactions,
+                        balances = db.accountDao().balancesAsOf(end),
+                    )
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** On-device explanation for a long-pressed calendar day (Milestone 8.3). */
     data class ExplainState(

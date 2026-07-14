@@ -11,9 +11,10 @@ import androidx.compose.ui.graphics.Color
  * while the separate light/dark mode still applies.
  */
 enum class ThemePalette(val label: String) {
+    // Enum names are persisted in AppSettings — labels may change, names must not.
     DEFAULT("Evergreen"),
-    CYBERPUNK("Cyberpunk 2077"),
-    MARATHON("Marathon"),
+    CYBERPUNK("Cyberpunk"),
+    MARATHON("Marathoner"),
     GOLDEN_RUSH("Golden Rush"),
     MONOCHROME("Black & White"),
 }
@@ -90,8 +91,8 @@ private val DefaultDark = darkColorScheme(
     inversePrimary = InversePrimaryDark, scrim = ScrimDark,
 )
 
-// ---------------------------------------------------------------- Cyberpunk 2077
-// Signature neon yellow + cyan + hot magenta on blue-black.
+// ---------------------------------------------------------------- Cyberpunk
+// Genre-inspired neon yellow + cyan + hot magenta on blue-black.
 
 private val CyberpunkDark = darkColorScheme(
     primary = Color(0xFFFCEE0A), onPrimary = Color(0xFF000000),
@@ -135,8 +136,8 @@ private val CyberpunkLight = lightColorScheme(
     inversePrimary = Color(0xFFFCEE0A), scrim = Color(0xFF000000),
 )
 
-// ---------------------------------------------------------------- Marathon
-// Bungie 2025: signature lime green (#C0FE04) on near-black charcoal, with
+// ---------------------------------------------------------------- Marathoner
+// Racing-inspired lime green (#C0FE04) on near-black charcoal, with
 // cool blue + pale-lime supporting accents.
 
 private val MarathonDark = darkColorScheme(

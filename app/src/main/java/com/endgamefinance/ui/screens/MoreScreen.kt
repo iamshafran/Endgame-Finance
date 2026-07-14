@@ -8,10 +8,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -97,7 +98,7 @@ fun MoreScreen(
             supportingContent = { Text("Date-range and year-over-year spending reports") },
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Filled.Star,
+                    imageVector = Icons.Filled.Insights,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -110,7 +111,7 @@ fun MoreScreen(
             supportingContent = { Text("Cross-cutting labels like #vacation or #reimbursable") },
             leadingContent = {
                 Icon(
-                    imageVector = Icons.Filled.Star,
+                    imageVector = Icons.Filled.Sell,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )

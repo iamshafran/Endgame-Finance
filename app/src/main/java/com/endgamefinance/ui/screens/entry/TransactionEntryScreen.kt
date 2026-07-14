@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.db.entity.Account
+import com.endgamefinance.ui.components.CategoryPickerField
 import com.endgamefinance.ui.components.DropdownField
 import com.endgamefinance.ui.theme.Spacing
 import com.endgamefinance.util.Money
@@ -425,9 +426,9 @@ fun TransactionEntryScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    DropdownField(
+                    CategoryPickerField(
                         label = "Interest category",
-                        options = categoryChoices.map { it.id to it.displayName },
+                        items = categoryChoices,
                         selectedId = interestCategoryId,
                         onSelect = { interestCategoryId = it },
                     )
@@ -459,10 +460,9 @@ fun TransactionEntryScreen(
                             }
                         }
                     }
-                    DropdownField(
+                    CategoryPickerField(
                         label = "Category",
-                        options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                            categoryChoices.map { it.id to it.displayName },
+                        items = categoryChoices,
                         selectedId = categoryId,
                         onSelect = { categoryId = it },
                         nullLabel = "Uncategorized",
@@ -528,10 +528,9 @@ fun TransactionEntryScreen(
                                     }
                                 }
                             }
-                            DropdownField(
+                            CategoryPickerField(
                                 label = "Category ${index + 1}",
-                                options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                                    categoryChoices.map { it.id to it.displayName },
+                                items = categoryChoices,
                                 selectedId = row.categoryId,
                                 onSelect = { row.categoryId = it },
                                 nullLabel = "Uncategorized",
@@ -558,10 +557,9 @@ fun TransactionEntryScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                DropdownField(
+                                CategoryPickerField(
                                     label = "Category ${index + 1}",
-                                    options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                                        categoryChoices.map { it.id to it.displayName },
+                                    items = categoryChoices,
                                     selectedId = row.categoryId,
                                     onSelect = { row.categoryId = it },
                                     nullLabel = "Uncategorized",

@@ -1,12 +1,17 @@
 package com.endgamefinance.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,22 +19,42 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.endgamefinance.data.db.entity.NetWorthSnapshot
+import com.endgamefinance.ui.theme.LocalMoneyColors
 import com.endgamefinance.ui.theme.Spacing
+import com.endgamefinance.ui.theme.tabular
 import com.endgamefinance.util.Money
 import java.text.DateFormat
 import java.util.Date
 
+/** Compact axis label for a cents value: 1.2k, 3.4M, -800. */
+private fun compactCents(cents: Long): String {
+    val units = cents / 100.0
+    val abs = kotlin.math.abs(units)
+    return when {
+        abs >= 1_000_000 -> "%.1fM".format(units / 1_000_000)
+        abs >= 10_000 -> "%.0fk".format(units / 1_000)
+        abs >= 1_000 -> "%.1fk".format(units / 1_000)
+        else -> "%.0f".format(units)
+    }
+}
+
 /**
- * Single-series net-worth line: 2dp stroke, recessive grid, direct label on
- * the latest point only, tap for a per-point readout. Reads exclusively from
+ * Net-worth trend: three lines (net worth, assets, liabilities) with a labeled
+ * y-axis, date x-axis, and tap for a per-point readout. Reads exclusively from
  * snapshots — the caller must never feed it live-derived values.
  */
 @Composable
@@ -47,28 +72,36 @@ fun NetWorthChart(
         return
     }
 
-    val lineColor = MaterialTheme.colorScheme.primary
+    val moneyColors = LocalMoneyColors.current
+    val netColor = MaterialTheme.colorScheme.primary
+    val assetColor = moneyColors.gain
+    val liabilityColor = moneyColors.loss
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+    val axisTextColor = MaterialTheme.colorScheme.onSurfaceVariant
     var selectedIndex by remember(snapshots) { mutableStateOf<Int?>(null) }
 
-    val minVal = snapshots.minOf { it.netWorth }
-    val maxVal = snapshots.maxOf { it.netWorth }
-    // Pad the range so the line never kisses the frame; degenerate flat series get a band
+    // Shared scale across all three series so their relationship is honest
+    val minVal = snapshots.minOf { minOf(it.netWorth, it.totalAssets, it.totalLiabilities) }
+    val maxVal = snapshots.maxOf { maxOf(it.netWorth, it.totalAssets, it.totalLiabilities) }
+    // Pad the range so lines never kiss the frame; degenerate flat series get a band
     val pad = maxOf((maxVal - minVal) / 10, 100L)
     val lo = minVal - pad
     val hi = maxVal + pad
     val minDate = snapshots.first().snapshotDate
     val maxDate = snapshots.last().snapshotDate
 
-    Column(modifier = modifier) {
-        // Tap readout replaces the static latest-value label while active
+    val textMeasurer = rememberTextMeasurer()
+    val axisStyle = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp)
+
+    Column(modifier = modifier.padding(bottom = Spacing.md)) {
+        // Tap readout replaces the static latest-value line while active
         val readoutIndex = selectedIndex ?: snapshots.lastIndex
         val readout = snapshots[readoutIndex]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.md),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
                 text = DateFormat.getDateInstance(DateFormat.MEDIUM)
@@ -78,16 +111,27 @@ fun NetWorthChart(
             )
             Text(
                 text = Money.format(readout.netWorth),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge.tabular,
+                color = netColor,
             )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SeriesDot(netColor, "Net worth")
+            SeriesDot(assetColor, "Assets")
+            SeriesDot(liabilityColor, "Liabilities")
         }
 
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
-                .padding(Spacing.md)
+                .height(170.dp)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                 .layoutId("networth_chart")
                 .pointerInput(snapshots) {
                     detectTapGestures { offset ->
@@ -99,64 +143,132 @@ fun NetWorthChart(
                     }
                 },
         ) {
-            val w = size.width
             val h = size.height
+            // Left gutter sized to the widest y label so lines never overlap text
+            val gutterLabels = (0..4).map { i ->
+                compactCents(hi - (hi - lo) * i / 4)
+            }
+            val measured = gutterLabels.map {
+                textMeasurer.measure(it, style = axisStyle)
+            }
+            val gutter = measured.maxOf { it.size.width } + 6.dp.toPx()
+            val w = size.width
+            val plotW = w - gutter
 
             fun x(date: Long): Float =
-                if (maxDate == minDate) w / 2
-                else (date - minDate).toFloat() / (maxDate - minDate) * w
+                gutter + if (maxDate == minDate) plotW / 2
+                else (date - minDate).toFloat() / (maxDate - minDate) * plotW
 
             fun y(value: Long): Float =
                 h - (value - lo).toFloat() / (hi - lo) * h
 
-            // Recessive grid: three horizontal lines
-            for (i in 1..3) {
+            // Y axis: gridlines with value labels (top, quarters, bottom)
+            for (i in 0..4) {
                 val gy = h * i / 4
-                drawLine(gridColor, Offset(0f, gy), Offset(w, gy), strokeWidth = 1.dp.toPx())
+                if (i in 1..3) {
+                    drawLine(
+                        gridColor, Offset(gutter, gy), Offset(w, gy),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                }
+                val label = measured[i]
+                drawText(
+                    label,
+                    color = axisTextColor,
+                    topLeft = Offset(
+                        0f,
+                        (gy - label.size.height / 2).coerceIn(0f, h - label.size.height),
+                    ),
+                )
             }
             // Zero line, slightly stronger, only when zero is in range
             if (lo < 0 && hi > 0) {
                 val zy = y(0)
                 drawLine(
                     gridColor.copy(alpha = 0.6f),
-                    Offset(0f, zy), Offset(w, zy),
+                    Offset(gutter, zy), Offset(w, zy),
                     strokeWidth = 1.dp.toPx(),
                 )
             }
 
-            val path = Path()
-            snapshots.forEachIndexed { index, snapshot ->
-                val px = x(snapshot.snapshotDate)
-                val py = y(snapshot.netWorth)
-                if (index == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            fun drawSeries(color: Color, width: Float, value: (NetWorthSnapshot) -> Long) {
+                val path = Path()
+                snapshots.forEachIndexed { index, snapshot ->
+                    val px = x(snapshot.snapshotDate)
+                    val py = y(value(snapshot))
+                    if (index == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                }
+                drawPath(path, color, style = Stroke(width = width))
             }
-            drawPath(path, lineColor, style = Stroke(width = 2.dp.toPx()))
 
-            // Marker on the active point (latest by default, tapped otherwise)
+            // Supporting series first so the net-worth line stays on top
+            drawSeries(assetColor.copy(alpha = 0.85f), 1.5.dp.toPx()) { it.totalAssets }
+            drawSeries(liabilityColor.copy(alpha = 0.85f), 1.5.dp.toPx()) { it.totalLiabilities }
+            drawSeries(netColor, 2.dp.toPx()) { it.netWorth }
+
+            // Markers on the active point (latest by default, tapped otherwise)
             val active = snapshots[readoutIndex]
+            val ax = x(active.snapshotDate)
+            drawCircle(assetColor, radius = 3.dp.toPx(), center = Offset(ax, y(active.totalAssets)))
             drawCircle(
-                lineColor,
-                radius = 4.dp.toPx(),
-                center = Offset(x(active.snapshotDate), y(active.netWorth)),
+                liabilityColor, radius = 3.dp.toPx(),
+                center = Offset(ax, y(active.totalLiabilities)),
             )
+            drawCircle(netColor, radius = 4.dp.toPx(), center = Offset(ax, y(active.netWorth)))
         }
 
+        // X axis: start / middle / end dates
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.md),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
         ) {
+            val fmt = DateFormat.getDateInstance(DateFormat.SHORT)
             Text(
-                DateFormat.getDateInstance(DateFormat.SHORT).format(Date(minDate)),
+                fmt.format(Date(minDate)),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
             )
             Text(
-                DateFormat.getDateInstance(DateFormat.SHORT).format(Date(maxDate)),
+                fmt.format(Date(minDate + (maxDate - minDate) / 2)),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                fmt.format(Date(maxDate)),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
             )
         }
+
+        // Active point's asset/liability split under the axis
+        Text(
+            text = "Assets ${Money.format(readout.totalAssets)} · " +
+                "Liabilities ${Money.format(readout.totalLiabilities)}",
+            style = MaterialTheme.typography.labelMedium.tabular,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun SeriesDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, CircleShape),
+        )
+        Text(
+            " $label",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

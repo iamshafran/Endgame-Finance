@@ -16,7 +16,7 @@ class AppSettings private constructor(context: Context) {
     private val _themeMode = MutableStateFlow(
         prefs.getString(KEY_THEME, THEME_SYSTEM) ?: THEME_SYSTEM,
     )
-    /** THEME_SYSTEM | THEME_LIGHT | THEME_DARK */
+    /** THEME_SYSTEM | THEME_LIGHT | THEME_DARK | THEME_OLED */
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
     fun setThemeMode(mode: String) {
@@ -61,6 +61,8 @@ class AppSettings private constructor(context: Context) {
         const val THEME_SYSTEM = "system"
         const val THEME_LIGHT = "light"
         const val THEME_DARK = "dark"
+        /** Dark scheme forced onto true-black surfaces for OLED displays. */
+        const val THEME_OLED = "oled"
 
         const val PALETTE_DEFAULT = "DEFAULT"
         const val FONT_DEFAULT = "plex_mono"

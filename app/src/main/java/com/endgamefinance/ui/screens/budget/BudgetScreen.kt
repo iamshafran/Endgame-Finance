@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -79,6 +81,17 @@ fun BudgetScreen() {
     }
 }
 
+/** A top-level category with its nested children, plus aggregate figures. */
+private data class BudgetGroup(
+    val parent: BudgetRowUi,
+    val children: List<BudgetRowUi>,
+) {
+    val spent: Long get() = parent.spent + children.sumOf { it.spent }
+    val available: Long get() = parent.available + children.sumOf { it.available }
+    val overBudget: Boolean get() = available > 0 && spent > available
+    val hasActivity: Boolean get() = spent > 0 || available > 0
+}
+
 @Composable
 private fun BudgetsTab(
     viewModel: BudgetViewModel = viewModel(factory = BudgetViewModel.factory(LocalContext.current)),
@@ -86,6 +99,21 @@ private fun BudgetsTab(
     val state by viewModel.uiState.collectAsState()
     var editRow by remember { mutableStateOf<BudgetRowUi?>(null) }
     var showModeDialog by remember { mutableStateOf(false) }
+    var expandedIds by remember { mutableStateOf(setOf<String>()) }
+    var showIdle by remember { mutableStateOf(false) }
+
+    // Group children under their parent so a long category list reads as a
+    // handful of collapsible sections instead of a wall of rows.
+    val topLevel = state.rows.filter { it.parentId == null }
+    val topLevelIds = topLevel.map { it.categoryId }.toSet()
+    val byParent = state.rows
+        .filter { it.parentId != null }
+        .groupBy { it.parentId!! }
+    val groups = topLevel.map { BudgetGroup(it, byParent[it.categoryId].orEmpty()) } +
+        // Orphans (parent archived/missing from this list) surface as their own group
+        byParent.filterKeys { it !in topLevelIds }.values.flatten()
+            .map { BudgetGroup(it, emptyList()) }
+    val (active, idle) = groups.partition { it.hasActivity }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item(key = "header") {
@@ -125,9 +153,53 @@ private fun BudgetsTab(
                 }
             }
         }
-        items(state.rows, key = { it.categoryId }) { row ->
-            BudgetRow(row = row, onClick = { editRow = row })
+        items(active, key = { it.parent.categoryId }) { group ->
+            if (group.children.isEmpty()) {
+                BudgetRow(row = group.parent, onClick = { editRow = group.parent })
+            } else {
+                val expanded = group.parent.categoryId in expandedIds
+                BudgetGroupHeader(
+                    group = group,
+                    expanded = expanded,
+                    onToggle = {
+                        expandedIds = if (expanded) expandedIds - group.parent.categoryId
+                        else expandedIds + group.parent.categoryId
+                    },
+                )
+                if (expanded) {
+                    BudgetRow(
+                        row = group.parent,
+                        onClick = { editRow = group.parent },
+                        indent = true,
+                    )
+                    group.children.forEach { child ->
+                        BudgetRow(row = child, onClick = { editRow = child }, indent = true)
+                    }
+                }
+            }
             HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
+        }
+        if (idle.isNotEmpty()) {
+            item(key = "idle_toggle") {
+                TextButton(
+                    onClick = { showIdle = !showIdle },
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
+                ) {
+                    val idleCount = idle.sumOf { 1 + it.children.size }
+                    Text(
+                        if (showIdle) "Hide categories with no budget or spending"
+                        else "$idleCount categories with no budget or spending",
+                    )
+                }
+            }
+            if (showIdle) {
+                items(idle, key = { "idle_${it.parent.categoryId}" }) { group ->
+                    BudgetRow(row = group.parent, onClick = { editRow = group.parent })
+                    group.children.forEach { child ->
+                        BudgetRow(row = child, onClick = { editRow = child }, indent = true)
+                    }
+                }
+            }
         }
         if (state.rows.isEmpty()) {
             item(key = "empty") {
@@ -228,14 +300,90 @@ private fun SummaryLine(label: String, value: String, valueColor: androidx.compo
     }
 }
 
+/** Collapsible header for a parent category: aggregate figures + progress. */
 @Composable
-private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit) {
+private fun BudgetGroupHeader(
+    group: BudgetGroup,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val moneyColors = LocalMoneyColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess
+                    else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = Spacing.xs),
+                )
+                Icon(
+                    imageVector = IconCatalog.get(group.parent.icon) ?: Icons.Filled.Category,
+                    contentDescription = null,
+                    tint = if (group.parent.icon != null) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(end = Spacing.sm),
+                )
+                Column {
+                    Text(group.parent.shortName, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${group.children.size + 1} categories",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                text = if (group.available > 0)
+                    "${Money.format(group.spent)} / ${Money.format(group.available)}"
+                else Money.format(group.spent),
+                style = MaterialTheme.typography.titleMedium,
+                color = when {
+                    group.overBudget -> moneyColors.loss
+                    group.available > 0 -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        if (group.available > 0) {
+            LinearProgressIndicator(
+                progress = { (group.spent.toFloat() / group.available).coerceIn(0f, 1f) },
+                color = if (group.overBudget) moneyColors.loss
+                else MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit, indent: Boolean = false) {
     val moneyColors = LocalMoneyColors.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(
+                start = if (indent) Spacing.xl else Spacing.md,
+                end = Spacing.md,
+                top = Spacing.sm,
+                bottom = Spacing.sm,
+            ),
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -246,12 +394,16 @@ private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit) {
                 Icon(
                     imageVector = IconCatalog.get(row.icon) ?: Icons.Filled.Category,
                     contentDescription = null,
-                    tint = if (row.icon != null) MaterialTheme.colorScheme.primary
+                    // Category icons take the accent role, not primary
+                    tint = if (row.icon != null) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(end = Spacing.sm),
                 )
                 Column {
-                    Text(row.displayName, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (indent) row.shortName else row.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                     if (row.carryIn > 0) {
                         Text(
                             "includes ${Money.format(row.carryIn)} carried over",

@@ -71,9 +71,9 @@ class TransactionEntryViewModel(
     val tags = db.tagDao().observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val categories: StateFlow<List<CategoryChoice>> =
+    val categories: StateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>> =
         db.categoryDao().observeAll()
-            .map { categoryChoices(it) }
+            .map { com.endgamefinance.ui.components.categoryPickItems(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _payeeSuggestions = MutableStateFlow<List<String>>(emptyList())

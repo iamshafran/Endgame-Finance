@@ -255,9 +255,10 @@ private fun LoanPaymentDialog(
     var note by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val expenseOptions: List<Pair<String?, String>> = remember(categories) {
-        listOf<Pair<String?, String>>(null to "No category") +
-            categories.filter { it.type == Category.TYPE_EXPENSE }.map { it.id as String? to it.name }
+    val expenseOptions = remember(categories) {
+        com.endgamefinance.ui.components.categoryPickItems(
+            categories.filter { it.type == Category.TYPE_EXPENSE },
+        )
     }
 
     fun runEstimate() {
@@ -320,9 +321,9 @@ private fun LoanPaymentDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                DropdownField(
+                com.endgamefinance.ui.components.CategoryPickerField(
                     label = "Interest category",
-                    options = expenseOptions,
+                    items = expenseOptions,
                     selectedId = interestCategoryId,
                     onSelect = { interestCategoryId = it },
                     nullLabel = "No category",

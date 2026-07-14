@@ -81,6 +81,7 @@ fun SettingsScreen(
                 AppSettings.THEME_SYSTEM to "System",
                 AppSettings.THEME_LIGHT to "Light",
                 AppSettings.THEME_DARK to "Dark",
+                AppSettings.THEME_OLED to "OLED",
             )
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 themeOptions.forEachIndexed { index, (value, label) ->
@@ -92,7 +93,8 @@ fun SettingsScreen(
                 }
             }
             Text(
-                "System follows your device's light/dark setting.",
+                "System follows your device's light/dark setting. OLED is dark " +
+                    "mode on true black — deepest contrast, kindest to OLED screens.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -111,8 +113,8 @@ fun SettingsScreen(
                 onSelect = { picked -> picked?.let { settings.setPalette(it) } },
             )
             Text(
-                "Evergreen is the default. Cyberpunk 2077 and Marathon are bold, " +
-                    "game-inspired looks — each still honors your light/dark choice.",
+                "Evergreen is the default. Cyberpunk and Marathoner are bold, " +
+                    "neon looks — each still honors your light/dark choice.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

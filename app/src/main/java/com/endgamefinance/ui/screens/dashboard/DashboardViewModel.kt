@@ -24,6 +24,13 @@ data class DashboardUiState(
     val dueBillCount: Int = 0,
 )
 
+data class BudgetSummaryUi(
+    val monthLabel: String = "",
+    val spentTotal: Long = 0,
+    val allocatedTotal: Long = 0,
+    val slices: List<com.endgamefinance.ui.components.SpendSlice> = emptyList(),
+)
+
 data class TopCategory(
     val displayName: String,
     val icon: String?,
@@ -80,6 +87,35 @@ class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }
+
+    /** Month spend split for the budget-summary donut: top 5 categories + Other. */
+    val budgetSummary: StateFlow<BudgetSummaryUi> = run {
+        val now = YearMonth.now()
+        combine(
+            db.budgetDao().observeSpentByCategory(MonthUtil.startMs(now), MonthUtil.endMs(now)),
+            db.categoryDao().observeAll(),
+            db.budgetDao().observeForMonth(MonthUtil.key(now)),
+        ) { spends, categories, budgets ->
+            val choices = com.endgamefinance.data.db.model.categoryChoices(categories)
+                .associateBy { it.id }
+            val sorted = spends.sortedByDescending { it.spent }
+            val top = sorted.take(5).map { spend ->
+                com.endgamefinance.ui.components.SpendSlice(
+                    label = choices[spend.categoryId]?.displayName ?: "(deleted)",
+                    amount = spend.spent,
+                )
+            }
+            val otherTotal = sorted.drop(5).sumOf { it.spent }
+            BudgetSummaryUi(
+                monthLabel = MonthUtil.label(now),
+                spentTotal = spends.sumOf { it.spent },
+                allocatedTotal = budgets.sumOf { it.allocatedAmount },
+                slices = if (otherTotal > 0) {
+                    top + com.endgamefinance.ui.components.SpendSlice("Other", otherTotal)
+                } else top,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BudgetSummaryUi())
     }
 
     val uiState: StateFlow<DashboardUiState> =

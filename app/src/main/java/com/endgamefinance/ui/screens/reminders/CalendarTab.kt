@@ -63,11 +63,19 @@ fun CalendarTab(viewModel: RemindersViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = { viewModel.calPreviousMonth(); selected = null }) {
+            IconButton(
+                onClick = {
+                    viewModel.calPreviousMonth(); selected = null; viewModel.selectDay(null)
+                },
+            ) {
                 Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous month")
             }
             Text(MonthUtil.label(state.month), style = MaterialTheme.typography.titleLarge)
-            IconButton(onClick = { viewModel.calNextMonth(); selected = null }) {
+            IconButton(
+                onClick = {
+                    viewModel.calNextMonth(); selected = null; viewModel.selectDay(null)
+                },
+            ) {
                 Icon(Icons.Filled.ChevronRight, contentDescription = "Next month")
             }
         }
@@ -105,7 +113,7 @@ fun CalendarTab(viewModel: RemindersViewModel) {
                         day = day,
                         isSelected = day != null && day.date == selected,
                         color = day?.let { momentumColor(it.momentum) } ?: Color.Transparent,
-                        onClick = { day?.let { selected = it.date } },
+                        onClick = { day?.let { selected = it.date; viewModel.selectDay(it.date) } },
                         onLongClick = { day?.let { viewModel.explainDay(it) } },
                         modifier = Modifier.weight(1f),
                     )
@@ -135,9 +143,10 @@ fun CalendarTab(viewModel: RemindersViewModel) {
             modifier = Modifier.padding(horizontal = Spacing.md),
         )
 
+        val pastDetail by viewModel.pastDayDetail.collectAsState()
         selected?.let { date ->
             state.days.firstOrNull { it.date == date }?.let { day ->
-                DayDetail(day, state.forecasts)
+                DayDetail(day, state.forecasts, pastDetail)
             }
         }
     }
@@ -283,6 +292,7 @@ private fun LegendDot(color: Color, label: String) {
 private fun DayDetail(
     day: CalendarDay,
     forecasts: List<com.endgamefinance.data.repo.AccountForecast>,
+    pastDetail: RemindersViewModel.PastDayDetail?,
 ) {
     val moneyColors = LocalMoneyColors.current
     Card(
@@ -317,6 +327,52 @@ private fun DayDetail(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
+            }
+
+            // Past days show what actually happened: the day's transactions,
+            // then the real account balances as of that evening.
+            if (pastDetail != null && pastDetail.date == day.date) {
+                if (pastDetail.transactions.isNotEmpty()) {
+                    Text(
+                        text = "Transactions",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(top = Spacing.sm),
+                    )
+                    pastDetail.transactions.forEach { item ->
+                        com.endgamefinance.ui.screens.ledger.TransactionRow(item)
+                    }
+                } else {
+                    Text(
+                        text = "No transactions recorded this day.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.sm),
+                    )
+                }
+                if (pastDetail.balances.isNotEmpty()) {
+                    Text(
+                        text = "Balances at end of day",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(top = Spacing.sm),
+                    )
+                    pastDetail.balances.forEach { entry ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                entry.account.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                Money.format(entry.balance),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (entry.balance >= 0) moneyColors.gain
+                                else moneyColors.loss,
+                            )
+                        }
+                    }
+                }
             }
 
             // Projected balances make sense only from today forward

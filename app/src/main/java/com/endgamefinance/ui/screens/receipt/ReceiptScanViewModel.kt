@@ -67,8 +67,10 @@ class ReceiptScanViewModel(
     // Options for the review dropdowns, loaded once per scan.
     private val _accounts = MutableStateFlow<List<Pair<String?, String>>>(emptyList())
     val accounts: StateFlow<List<Pair<String?, String>>> = _accounts.asStateFlow()
-    private val _categoryOptions = MutableStateFlow<List<Pair<String?, String>>>(emptyList())
-    val categoryOptions: StateFlow<List<Pair<String?, String>>> = _categoryOptions.asStateFlow()
+    private val _categoryOptions =
+        MutableStateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>>(emptyList())
+    val categoryOptions: StateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>> =
+        _categoryOptions.asStateFlow()
 
     fun onImagePicked(uri: Uri) {
         _phase.value = ReceiptUi.Working("Reading the receipt…")
@@ -87,8 +89,7 @@ class ReceiptScanViewModel(
                 val allCats = db.categoryDao().getAllOnce()
                 val expense = allCats.filter { it.type == Category.TYPE_EXPENSE }
                 _categoryOptions.value =
-                    listOf<Pair<String?, String>>(null to "Uncategorized") +
-                        categoryChoices(expense).map { it.id as String? to it.displayName }
+                    com.endgamefinance.ui.components.categoryPickItems(expense)
 
                 val accts = db.accountDao().getAllOnce().filter { it.isActive }
                 _accounts.value = accts.map { it.id as String? to it.name }

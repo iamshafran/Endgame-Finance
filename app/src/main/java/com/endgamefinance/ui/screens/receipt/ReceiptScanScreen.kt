@@ -317,7 +317,7 @@ private fun ReviewView(modifier: Modifier, viewModel: ReceiptScanViewModel) {
 @Composable
 private fun LineRow(
     line: ReceiptLine,
-    categoryOptions: List<Pair<String?, String>>,
+    categoryOptions: List<com.endgamefinance.ui.components.CategoryPickItem>,
     onAmount: (Long) -> Unit,
     onCategory: (String?) -> Unit,
     onDelete: () -> Unit,
@@ -353,9 +353,9 @@ private fun LineRow(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(0.42f),
                 )
-                DropdownField(
+                com.endgamefinance.ui.components.CategoryPickerField(
                     label = "Category",
-                    options = categoryOptions,
+                    items = categoryOptions,
                     selectedId = line.categoryId,
                     onSelect = onCategory,
                     nullLabel = "Uncategorized",

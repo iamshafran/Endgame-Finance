@@ -70,9 +70,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.endgamefinance.data.db.DatabaseProvider
 import com.endgamefinance.data.db.EndgameDatabase
-import com.endgamefinance.data.db.model.CategoryChoice
 import com.endgamefinance.data.db.model.TransactionListItem
-import com.endgamefinance.data.db.model.categoryChoices
 import com.endgamefinance.ui.components.DropdownField
 import com.endgamefinance.ui.components.IconCatalog
 import com.endgamefinance.ui.theme.LocalMoneyColors
@@ -223,9 +221,9 @@ class LedgerViewModel(private val db: EndgameDatabase) : ViewModel() {
     val accounts = db.accountDao().observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val categories: StateFlow<List<CategoryChoice>> =
+    val categories: StateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>> =
         db.categoryDao().observeAll()
-            .map { categoryChoices(it) }
+            .map { com.endgamefinance.ui.components.categoryPickItems(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun setFilters(filters: LedgerFilters) {
@@ -355,7 +353,9 @@ fun LedgerScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = Spacing.md),
+                            .padding(horizontal = Spacing.md)
+                            // Clear separation between the filter form and the list
+                            .padding(top = Spacing.sm, bottom = Spacing.lg),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         OutlinedTextField(
@@ -373,10 +373,9 @@ fun LedgerScreen(
                             onSelect = { viewModel.setFilters(filters.copy(accountId = it)) },
                             nullLabel = "All accounts",
                         )
-                        DropdownField(
+                        com.endgamefinance.ui.components.CategoryPickerField(
                             label = "Category",
-                            options = listOf<Pair<String?, String>>(null to "All categories") +
-                                categories.map { it.id to it.displayName },
+                            items = categories,
                             selectedId = filters.categoryId,
                             onSelect = { viewModel.setFilters(filters.copy(categoryId = it)) },
                             nullLabel = "All categories",
@@ -592,15 +591,16 @@ fun LedgerScreen(
     }
 
     if (showCategoryPicker) {
-        PickerDialog(
-            title = "Set category",
-            options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                categories.map { it.id to it.displayName },
+        com.endgamefinance.ui.components.CategoryPickerSheet(
+            title = "Set category for ${selected.size}",
+            items = categories,
+            selectedId = null,
             onPick = { id ->
                 viewModel.setCategorySelected(id)
                 showCategoryPicker = false
             },
             onDismiss = { showCategoryPicker = false },
+            nullLabel = "Uncategorized",
         )
     }
 
@@ -863,7 +863,7 @@ fun TransactionRow(
             modifier = Modifier
                 .size(40.dp)
                 .background(
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                     CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -872,9 +872,10 @@ fun TransactionRow(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
+                    // Category icons take the accent role, not primary
                     tint = if (item.type != "transfer" &&
                         IconCatalog.get(item.categoryIcon) != null
-                    ) MaterialTheme.colorScheme.primary
+                    ) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp),
                 )
@@ -882,7 +883,7 @@ fun TransactionRow(
                 Text(
                     text = item.payee.trim().take(1).uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }
@@ -890,7 +891,9 @@ fun TransactionRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = item.payee,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (item.isShared) {
@@ -916,7 +919,9 @@ fun TransactionRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = amountText,
-                    style = MaterialTheme.typography.titleMedium.tabular,
+                    style = MaterialTheme.typography.titleMedium.tabular.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    ),
                     color = amountColor,
                 )
                 // Slot is always reserved so amounts stay column-aligned

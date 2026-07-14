@@ -1,5 +1,6 @@
 package com.endgamefinance.ui.navigation
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -15,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -57,6 +60,16 @@ fun EndgameApp() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    fun navigateToTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Scaffold(
         // Top inset is owned by each screen's own TopAppBar (EndgameScaffold);
         // zero it here so there's no double status-bar padding.
@@ -81,15 +94,7 @@ fun EndgameApp() {
                             currentRoute?.startsWith(Routes.REMINDER_EDIT) == true)
                     NavigationBarItem(
                         selected = selected,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { navigateToTab(tab.route) },
                         icon = { TabIcon(tab.route) },
                         label = { Text(tab.label) },
                     )
@@ -97,10 +102,34 @@ fun EndgameApp() {
             }
         },
     ) { innerPadding ->
+        // Swipe left/right anywhere a child doesn't own the horizontal gesture
+        // (lists scroll vertically, so this mostly just works) to move between
+        // the five bottom tabs. Swipeable ledger rows keep their own gesture.
+        val onTab = bottomTabs.any { it.route == currentRoute }
         NavHost(
             navController = navController,
             startDestination = Routes.DASHBOARD,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .pointerInput(currentRoute, onTab) {
+                    if (!onTab) return@pointerInput
+                    var dragTotal = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { dragTotal = 0f },
+                        onHorizontalDrag = { _, amount -> dragTotal += amount },
+                        onDragEnd = {
+                            val threshold = 96.dp.toPx()
+                            val current = bottomTabs.indexOfFirst { it.route == currentRoute }
+                            if (current < 0) return@detectHorizontalDragGestures
+                            val target = when {
+                                dragTotal < -threshold -> current + 1
+                                dragTotal > threshold -> current - 1
+                                else -> current
+                            }.coerceIn(0, bottomTabs.lastIndex)
+                            if (target != current) navigateToTab(bottomTabs[target].route)
+                        },
+                    )
+                },
             enterTransition = {
                 androidx.compose.animation.fadeIn(
                     animationSpec = androidx.compose.animation.core.tween(220),

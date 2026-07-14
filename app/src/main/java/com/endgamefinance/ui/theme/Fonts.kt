@@ -20,6 +20,15 @@ enum class AppFont(val key: String, val label: String, val family: FontFamily) {
             Font(R.font.ibm_plex_mono_semibold, FontWeight.SemiBold),
         ),
     ),
+    PLEX_SANS(
+        "plex_sans",
+        "IBM Plex Sans",
+        FontFamily(
+            Font(R.font.ibm_plex_sans_regular, FontWeight.Normal),
+            Font(R.font.ibm_plex_sans_medium, FontWeight.Medium),
+            Font(R.font.ibm_plex_sans_semibold, FontWeight.SemiBold),
+        ),
+    ),
     ATKINSON(
         "atkinson",
         "Atkinson Hyperlegible",

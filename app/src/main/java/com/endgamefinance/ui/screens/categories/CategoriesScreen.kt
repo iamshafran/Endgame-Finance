@@ -188,7 +188,8 @@ private fun CategoryRow(category: Category, indent: Boolean, onClick: () -> Unit
         Icon(
             imageVector = IconCatalog.get(category.icon) ?: Icons.Filled.Category,
             contentDescription = null,
-            tint = if (category.icon != null) MaterialTheme.colorScheme.primary
+            // Category icons take the accent role, not primary
+            tint = if (category.icon != null) MaterialTheme.colorScheme.tertiary
             else MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(end = Spacing.sm),
         )
@@ -234,7 +235,7 @@ private fun CategoryDialog(
                         Icon(
                             imageVector = IconCatalog.get(icon) ?: Icons.Filled.Category,
                             contentDescription = "Pick icon",
-                            tint = if (icon != null) MaterialTheme.colorScheme.primary
+                            tint = if (icon != null) MaterialTheme.colorScheme.tertiary
                             else MaterialTheme.colorScheme.outline,
                         )
                     }

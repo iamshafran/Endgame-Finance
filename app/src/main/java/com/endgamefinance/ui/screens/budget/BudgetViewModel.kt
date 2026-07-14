@@ -47,6 +47,10 @@ class BudgetPrefs(context: Context) {
 data class BudgetRowUi(
     val categoryId: String,
     val displayName: String,
+    /** Bare category name (no "Parent › " prefix) for grouped rendering. */
+    val shortName: String,
+    /** Top-level parent id, or null when this row IS top-level. */
+    val parentId: String?,
     val icon: String?,
     val allocated: Long?,
     val rolloverMode: String,
@@ -100,6 +104,7 @@ class BudgetViewModel(
                 val spentByCat = spends.associateBy({ it.categoryId }, { it.spent })
                 val budgetByCat = budgets.associateBy { it.categoryId }
 
+                val categoriesById = categories.associateBy { it.id }
                 val rows = categoryChoices(categories)
                     .filter { it.type == Category.TYPE_EXPENSE }
                     .map { choice ->
@@ -107,11 +112,13 @@ class BudgetViewModel(
                         val carry = carryIn[choice.id] ?: 0L
                         val spent = spentByCat[choice.id] ?: 0L
                         val available = (budget?.allocatedAmount ?: 0L) + carry
-                        val iconKey = categories.firstOrNull { it.id == choice.id }?.icon
+                        val category = categoriesById[choice.id]
                         BudgetRowUi(
                             categoryId = choice.id,
                             displayName = choice.displayName,
-                            icon = iconKey,
+                            shortName = category?.name ?: choice.displayName,
+                            parentId = category?.parentId,
+                            icon = category?.icon,
                             allocated = budget?.allocatedAmount,
                             rolloverMode = budget?.rolloverMode ?: "reset",
                             carryIn = carry,

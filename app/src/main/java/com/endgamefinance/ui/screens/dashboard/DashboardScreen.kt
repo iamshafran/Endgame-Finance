@@ -132,6 +132,47 @@ fun DashboardScreen(
             }
         }
 
+        val budgetSummary by viewModel.budgetSummary.collectAsState()
+        if (budgetSummary.slices.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = Spacing.md, end = Spacing.md,
+                                top = Spacing.md, bottom = Spacing.xs,
+                            ),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Budget · ${budgetSummary.monthLabel}",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (budgetSummary.allocatedTotal > 0) {
+                            Text(
+                                "${Money.format(budgetSummary.spentTotal)} of " +
+                                    Money.format(budgetSummary.allocatedTotal),
+                                style = MaterialTheme.typography.labelMedium.tabular,
+                                color = if (
+                                    budgetSummary.spentTotal > budgetSummary.allocatedTotal
+                                ) moneyColors.loss else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    com.endgamefinance.ui.components.SpendDonutChart(
+                        slices = budgetSummary.slices,
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                }
+            }
+        }
+
         val topCategories by viewModel.topCategories.collectAsState()
         if (topCategories.isNotEmpty()) {
             Card(
@@ -158,7 +199,8 @@ fun DashboardScreen(
                                     imageVector = IconCatalog.get(category.icon)
                                         ?: Icons.Filled.Category,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    // Category icons take the accent role, not primary
+                                    tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier
                                         .padding(end = Spacing.sm)
                                         .size(20.dp),
