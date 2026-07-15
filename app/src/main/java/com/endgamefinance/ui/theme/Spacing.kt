@@ -10,4 +10,10 @@ object Spacing {
     val md: Dp = 16.dp
     val lg: Dp = 24.dp
     val xl: Dp = 32.dp
+
+    /**
+     * Bottom padding for scrollable content on screens with a FAB: 56dp FAB +
+     * 16dp margin + breathing room, so the last row scrolls clear of it.
+     */
+    val fabClearance: Dp = 96.dp
 }

@@ -1,5 +1,6 @@
 package com.endgamefinance.ui.navigation
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -15,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -55,7 +58,18 @@ private fun TabIcon(route: String) {
 fun EndgameApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // Routes with query args report their full pattern; compare on the base
+    val currentRoute = backStackEntry?.destination?.route?.substringBefore('?')
+
+    fun navigateToTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         // Top inset is owned by each screen's own TopAppBar (EndgameScaffold);
@@ -81,15 +95,7 @@ fun EndgameApp() {
                             currentRoute?.startsWith(Routes.REMINDER_EDIT) == true)
                     NavigationBarItem(
                         selected = selected,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { navigateToTab(tab.route) },
                         icon = { TabIcon(tab.route) },
                         label = { Text(tab.label) },
                     )
@@ -97,10 +103,37 @@ fun EndgameApp() {
             }
         },
     ) { innerPadding ->
+        // Swipe left/right anywhere a child doesn't own the horizontal gesture
+        // (lists scroll vertically, so this mostly just works) to move between
+        // the bottom tabs. The Ledger tab is excluded entirely: its rows are
+        // horizontally swipeable (clear/delete), and the two gestures racing
+        // made row swipes unreliable.
+        val onTab = bottomTabs.any { it.route == currentRoute } &&
+            currentRoute != Routes.LEDGER
         NavHost(
             navController = navController,
             startDestination = Routes.DASHBOARD,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .pointerInput(currentRoute, onTab) {
+                    if (!onTab) return@pointerInput
+                    var dragTotal = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { dragTotal = 0f },
+                        onHorizontalDrag = { _, amount -> dragTotal += amount },
+                        onDragEnd = {
+                            val threshold = 96.dp.toPx()
+                            val current = bottomTabs.indexOfFirst { it.route == currentRoute }
+                            if (current < 0) return@detectHorizontalDragGestures
+                            val target = when {
+                                dragTotal < -threshold -> current + 1
+                                dragTotal > threshold -> current - 1
+                                else -> current
+                            }.coerceIn(0, bottomTabs.lastIndex)
+                            if (target != current) navigateToTab(bottomTabs[target].route)
+                        },
+                    )
+                },
             enterTransition = {
                 androidx.compose.animation.fadeIn(
                     animationSpec = androidx.compose.animation.core.tween(220),
@@ -126,7 +159,16 @@ fun EndgameApp() {
                 DashboardScreen(
                     onSearch = { navController.navigate(Routes.SEARCH) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenAssistant = { navController.navigate(Routes.ASSISTANT) },
                     onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
+                    onOpenCalendar = {
+                        navController.navigate("${Routes.REMINDERS}?section=calendar") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(Routes.SEARCH) {
@@ -161,17 +203,30 @@ fun EndgameApp() {
                 TransactionEntryScreen(
                     transactionId = entry.arguments?.getString("transactionId"),
                     onDone = { navController.popBackStack() },
+                    onScanReceipt = {
+                        navController.navigate("${Routes.RECEIPT_SCAN}?forResult=true")
+                    },
+                    resultHandle = entry.savedStateHandle,
                 )
             }
             composable(Routes.BUDGET) {
                 BudgetScreen()
             }
-            composable(Routes.REMINDERS) {
+            composable(
+                route = "${Routes.REMINDERS}?section={section}",
+                arguments = listOf(
+                    navArgument("section") {
+                        type = NavType.StringType
+                        defaultValue = "bills"
+                    },
+                ),
+            ) { entry ->
                 RemindersScreen(
                     onAddReminder = { navController.navigate(Routes.REMINDER_EDIT) },
                     onEditReminder = { id ->
                         navController.navigate("${Routes.REMINDER_EDIT}?reminderId=$id")
                     },
+                    initialSection = entry.arguments?.getString("section") ?: "bills",
                 )
             }
             composable(
@@ -196,13 +251,58 @@ fun EndgameApp() {
                     onOpenTags = { navController.navigate(Routes.TAGS) },
                     onOpenReports = { navController.navigate(Routes.REPORTS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenAssistant = { navController.navigate(Routes.ASSISTANT) },
+                    onOpenReceiptScan = { navController.navigate(Routes.RECEIPT_SCAN) },
+                )
+            }
+            composable(
+                route = "${Routes.RECEIPT_SCAN}?forResult={forResult}",
+                arguments = listOf(
+                    navArgument("forResult") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
+            ) { entry ->
+                val forResult = entry.arguments?.getBoolean("forResult") == true
+                com.endgamefinance.ui.screens.receipt.ReceiptScanScreen(
+                    onBack = { navController.popBackStack() },
+                    // Launched from the entry form: hand the parsed receipt back
+                    onUseInEntry = if (forResult) {
+                        { json ->
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle?.set("receipt_result", json)
+                            navController.popBackStack()
+                        }
+                    } else null,
+                )
+            }
+            composable(Routes.ASSISTANT) {
+                com.endgamefinance.ui.screens.assistant.AssistantScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
             composable(Routes.REPORTS) {
                 ReportsScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenImport = { navController.navigate(Routes.IMPORT) },
+                    onOpenCapture = { navController.navigate(Routes.CAPTURE) },
+                )
+            }
+            composable(Routes.CAPTURE) {
+                com.endgamefinance.ui.screens.notify.NotificationCaptureScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.IMPORT) {
+                com.endgamefinance.ui.screens.importer.ImportScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                )
             }
             composable(Routes.CATEGORIES) {
                 CategoriesScreen(onBack = { navController.popBackStack() })

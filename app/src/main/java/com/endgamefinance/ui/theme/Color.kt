@@ -27,9 +27,11 @@ val OnErrorLight = Color(0xFFFFFFFF)
 val ErrorContainerLight = Color(0xFFFFDAD6)
 val OnErrorContainerLight = Color(0xFF410002)
 
-val BackgroundLight = Color(0xFFF6FBF7)
+// Pure-white canvas (owner request 2026-07-14); the tint lives in the
+// surfaceContainer roles that cards/app bars use, not the page background.
+val BackgroundLight = Color(0xFFFFFFFF)
 val OnBackgroundLight = Color(0xFF171D1A)
-val SurfaceLight = Color(0xFFF6FBF7)
+val SurfaceLight = Color(0xFFFFFFFF)
 val OnSurfaceLight = Color(0xFF171D1A)
 val SurfaceVariantLight = Color(0xFFDBE5DE)
 val OnSurfaceVariantLight = Color(0xFF404944)
@@ -38,7 +40,7 @@ val OutlineLight = Color(0xFF707974)
 // elevation, and scrolled app bars read as part of the brand.
 val OutlineVariantLight = Color(0xFFBFC9C2)
 val SurfaceDimLight = Color(0xFFD6DBD6)
-val SurfaceBrightLight = Color(0xFFF6FBF7)
+val SurfaceBrightLight = Color(0xFFFFFFFF)
 val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
 val SurfaceContainerLowLight = Color(0xFFF0F5F1)
 val SurfaceContainerLight = Color(0xFFEAF0EB)

@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.db.entity.Account
+import com.endgamefinance.ui.components.CategoryPickerField
 import com.endgamefinance.ui.components.DropdownField
 import com.endgamefinance.ui.theme.Spacing
 import com.endgamefinance.util.Money
@@ -109,6 +111,8 @@ private fun setDateKeepTime(existing: Long, target: LocalDate): Long {
 fun TransactionEntryScreen(
     transactionId: String?,
     onDone: () -> Unit,
+    onScanReceipt: (() -> Unit)? = null,
+    resultHandle: androidx.lifecycle.SavedStateHandle? = null,
     viewModel: TransactionEntryViewModel =
         viewModel(factory = TransactionEntryViewModel.factory(LocalContext.current)),
 ) {
@@ -298,9 +302,60 @@ fun TransactionEntryScreen(
         )
     }
 
+    // A scanned receipt (More-tab flow's sibling) hands back merchant, date,
+    // account, and per-category lines; prefill the form and let the user edit.
+    LaunchedEffect(resultHandle) {
+        resultHandle?.getStateFlow<String?>("receipt_result", null)?.collect { json ->
+            if (json == null) return@collect
+            runCatching {
+                val obj = org.json.JSONObject(json)
+                type = "expense"
+                if (!obj.isNull("merchant") && obj.getString("merchant").isNotBlank()) {
+                    payee = obj.getString("merchant")
+                    suppressSuggestions = true
+                }
+                timestamp = obj.optLong("timestamp", timestamp)
+                if (!obj.isNull("accountId")) accountId = obj.getString("accountId")
+                val arr = obj.optJSONArray("lines") ?: org.json.JSONArray()
+                val lines = (0 until arr.length()).map { i ->
+                    val line = arr.getJSONObject(i)
+                    val catId = if (line.isNull("categoryId")) null
+                    else line.getString("categoryId")
+                    catId to line.getLong("amountCents")
+                }
+                when {
+                    lines.size == 1 -> {
+                        splitMode = false
+                        amountText = Money.formatPlain(lines[0].second)
+                        categoryId = lines[0].first
+                    }
+                    lines.size > 1 -> {
+                        splitMode = true
+                        splitByAccount = false
+                        splitRows.clear()
+                        lines.forEach { (catId, cents) ->
+                            splitRows.add(SplitRow(catId, Money.formatPlain(cents)))
+                        }
+                    }
+                }
+            }
+            resultHandle["receipt_result"] = null
+        }
+    }
+
     com.endgamefinance.ui.components.EndgameScaffold(
         title = if (isEditing) "Edit transaction" else "New transaction",
         onBack = onDone,
+        actions = {
+            if (!isEditing && onScanReceipt != null) {
+                IconButton(onClick = onScanReceipt) {
+                    Icon(
+                        Icons.Filled.PhotoCamera,
+                        contentDescription = "Scan a receipt to fill this form",
+                    )
+                }
+            }
+        },
     ) { innerPadding ->
     // Scrollable body + sticky action bar (feature 2)
     Column(
@@ -425,9 +480,9 @@ fun TransactionEntryScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    DropdownField(
+                    CategoryPickerField(
                         label = "Interest category",
-                        options = categoryChoices.map { it.id to it.displayName },
+                        items = categoryChoices,
                         selectedId = interestCategoryId,
                         onSelect = { interestCategoryId = it },
                     )
@@ -459,10 +514,9 @@ fun TransactionEntryScreen(
                             }
                         }
                     }
-                    DropdownField(
+                    CategoryPickerField(
                         label = "Category",
-                        options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                            categoryChoices.map { it.id to it.displayName },
+                        items = categoryChoices,
                         selectedId = categoryId,
                         onSelect = { categoryId = it },
                         nullLabel = "Uncategorized",
@@ -528,10 +582,9 @@ fun TransactionEntryScreen(
                                     }
                                 }
                             }
-                            DropdownField(
+                            CategoryPickerField(
                                 label = "Category ${index + 1}",
-                                options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                                    categoryChoices.map { it.id to it.displayName },
+                                items = categoryChoices,
                                 selectedId = row.categoryId,
                                 onSelect = { row.categoryId = it },
                                 nullLabel = "Uncategorized",
@@ -558,10 +611,9 @@ fun TransactionEntryScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                DropdownField(
+                                CategoryPickerField(
                                     label = "Category ${index + 1}",
-                                    options = listOf<Pair<String?, String>>(null to "Uncategorized") +
-                                        categoryChoices.map { it.id to it.displayName },
+                                    items = categoryChoices,
                                     selectedId = row.categoryId,
                                     onSelect = { row.categoryId = it },
                                     nullLabel = "Uncategorized",
@@ -614,7 +666,18 @@ fun TransactionEntryScreen(
                         },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+                        keyboardActions = KeyboardActions(onDone = {
+                            keyboard?.hide()
+                            // Auto-category from history (M7.4): a new payee that
+                            // resembles a known one prefills its category.
+                            if (categoryId == null && payee.isNotBlank()) {
+                                scope.launch {
+                                    viewModel.prefillForPayee(payee).categoryId?.let {
+                                        categoryId = it
+                                    }
+                                }
+                            }
+                        }),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (!suppressSuggestions && payeeSuggestions.isNotEmpty()) {

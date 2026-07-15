@@ -56,6 +56,67 @@ class ReminderRepository(private val db: EndgameDatabase) {
         }
     }
 
+    /**
+     * Posts a loan-repayment reminder as a proper split: one transfer
+     * transaction into the loan whose category-less split is [principal] (reduces
+     * the loan) and whose categorized split is the interest (a borrowing-cost
+     * expense). Mirrors the entry screen's "loan payment" mode. Advances the
+     * reminder. [interestCents] may be 0 (all principal).
+     */
+    suspend fun postLoanPayment(
+        reminder: Reminder,
+        paymentCents: Long,
+        interestCents: Long,
+        interestCategoryId: String?,
+    ) {
+        require(paymentCents > 0) { "Payment must be positive" }
+        require(interestCents in 0..paymentCents) { "Interest can't exceed the payment" }
+        require(reminder.toAccountId != null) { "A loan payment needs a destination loan account" }
+        if (interestCents > 0) {
+            requireNotNull(interestCategoryId) { "Pick a category for the interest" }
+        }
+        val principal = paymentCents - interestCents
+        db.withTransaction {
+            val txId = UUID.randomUUID().toString()
+            val splits = buildList {
+                if (principal > 0) {
+                    add(
+                        TransactionSplit(
+                            id = UUID.randomUUID().toString(),
+                            transactionId = txId,
+                            categoryId = null, // principal — credits the loan
+                            amount = principal,
+                        ),
+                    )
+                }
+                if (interestCents > 0) {
+                    add(
+                        TransactionSplit(
+                            id = UUID.randomUUID().toString(),
+                            transactionId = txId,
+                            categoryId = interestCategoryId,
+                            amount = interestCents,
+                        ),
+                    )
+                }
+            }
+            db.transactionDao().insertWithSplits(
+                TransactionEntity(
+                    id = txId,
+                    accountId = reminder.accountId,
+                    toAccountId = reminder.toAccountId,
+                    timestamp = System.currentTimeMillis(),
+                    payee = reminder.name,
+                    notes = "Loan payment",
+                    type = "transfer",
+                    isCleared = false,
+                ),
+                splits,
+            )
+            advance(reminder)
+        }
+    }
+
     /** Skips this occurrence without touching the ledger. */
     suspend fun skip(reminder: Reminder) = db.withTransaction { advance(reminder) }
 

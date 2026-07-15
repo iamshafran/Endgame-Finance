@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Receipt captures written by the camera app into our cache. -->
+    <cache-path name="captures" path="captures/" />
+</paths>

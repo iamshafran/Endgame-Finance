@@ -18,7 +18,20 @@ import java.util.UUID
  */
 object SnapshotWriter {
 
-    private const val BACKFILL_DAYS = 90
+    private const val MIN_BACKFILL_DAYS = 90
+    private const val MAX_BACKFILL_DAYS = 400
+
+    /**
+     * Drops all snapshots and backfills from scratch. Call after bulk imports:
+     * the first-launch backfill predates imported history, so the trend would
+     * otherwise stay flat before the import date.
+     */
+    suspend fun rebuild(db: EndgameDatabase) {
+        db.withTransaction {
+            db.netWorthSnapshotDao().clearAll()
+            backfill(db)
+        }
+    }
 
     suspend fun writeToday(db: EndgameDatabase) {
         db.withTransaction {
@@ -63,12 +76,23 @@ object SnapshotWriter {
         val deltas = db.netWorthSnapshotDao().dailyAccountDeltas()
             .groupBy { it.day }
 
+        // Reach back to the earliest transaction (bounded), so imported
+        // history shows a real trend — not just the days since first launch.
+        val earliest = db.netWorthSnapshotDao().earliestTransactionMs()
+        val daysToEarliest = earliest?.let {
+            java.time.temporal.ChronoUnit.DAYS.between(
+                java.time.Instant.ofEpochMilli(it).atZone(zone).toLocalDate(),
+                today,
+            ).toInt() + 1
+        } ?: 0
+        val backfillDays = daysToEarliest.coerceIn(MIN_BACKFILL_DAYS, MAX_BACKFILL_DAYS)
+
         // Walk backward: end-of-day(D-1) = end-of-day(D) − deltas(D)
         val balances = accounts.associate { it.account to it.balance }.toMutableMap()
         val accountByIdKey = accounts.associateBy { it.account.id }
         val snapshots = mutableListOf<NetWorthSnapshot>()
         var day = today
-        repeat(BACKFILL_DAYS) {
+        repeat(backfillDays) {
             val totals = totalsOf(balances)
             snapshots += NetWorthSnapshot(
                 id = UUID.randomUUID().toString(),

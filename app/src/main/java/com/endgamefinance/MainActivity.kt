@@ -36,9 +36,10 @@ class MainActivity : FragmentActivity() {
             val themeMode by settings.themeMode.collectAsState()
             val darkTheme = when (themeMode) {
                 AppSettings.THEME_LIGHT -> false
-                AppSettings.THEME_DARK -> true
+                AppSettings.THEME_DARK, AppSettings.THEME_OLED -> true
                 else -> isSystemInDarkTheme()
             }
+            val oledBlack = themeMode == AppSettings.THEME_OLED
             // Push the chosen display currency into the formatter before children
             // compose, so every Money.format() in this pass uses the new symbol.
             val currencyCode by settings.currencyCode.collectAsState()
@@ -49,7 +50,15 @@ class MainActivity : FragmentActivity() {
             }.getOrDefault(com.endgamefinance.ui.theme.ThemePalette.DEFAULT)
             val fontKey by settings.fontKey.collectAsState()
             val font = com.endgamefinance.ui.theme.AppFont.fromKey(fontKey)
-            EndgameTheme(palette = palette, font = font, darkTheme = darkTheme) {
+            // Snapshot-backed global; equal writes are no-ops, so assigning
+            // during composition is safe and icon consumers recompose on change.
+            val iconStyleKey by settings.iconStyle.collectAsState()
+            com.endgamefinance.ui.components.IconCatalog.style =
+                com.endgamefinance.ui.components.IconStyle.fromKey(iconStyleKey)
+            EndgameTheme(
+                palette = palette, font = font,
+                darkTheme = darkTheme, oledBlack = oledBlack,
+            ) {
                 // Root Surface so every branch (lock, onboarding, app) inherits the
                 // themed background AND onSurface content color — a bare MaterialTheme
                 // does not set content color, only a Surface does.

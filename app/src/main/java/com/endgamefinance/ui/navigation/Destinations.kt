@@ -17,6 +17,10 @@ object Routes {
     const val SEARCH = "search" // ledger with filters open, launched from Dashboard
     const val RECONCILE = "reconcile" // /{accountId}
     const val SETTINGS = "settings" // reached from inside More
+    const val ASSISTANT = "assistant" // AI assistant (More + Dashboard action)
+    const val IMPORT = "import_bluecoins" // CSV migration, reached from Settings
+    const val CAPTURE = "notification_capture" // notification-capture setup, reached from Settings
+    const val RECEIPT_SCAN = "receipt_scan" // OCR receipt scanning, reached from More
 }
 
 data class BottomTab(

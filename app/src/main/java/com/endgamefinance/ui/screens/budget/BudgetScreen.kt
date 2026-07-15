@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -79,6 +81,18 @@ fun BudgetScreen() {
     }
 }
 
+/** A category group's budget rows, plus aggregate figures. */
+private data class BudgetGroup(
+    val key: String,
+    val name: String,
+    val rows: List<BudgetRowUi>,
+) {
+    val spent: Long get() = rows.sumOf { it.spent }
+    val available: Long get() = rows.sumOf { it.available }
+    val overBudget: Boolean get() = available > 0 && spent > available
+    val hasActivity: Boolean get() = spent > 0 || available > 0
+}
+
 @Composable
 private fun BudgetsTab(
     viewModel: BudgetViewModel = viewModel(factory = BudgetViewModel.factory(LocalContext.current)),
@@ -86,6 +100,18 @@ private fun BudgetsTab(
     val state by viewModel.uiState.collectAsState()
     var editRow by remember { mutableStateOf<BudgetRowUi?>(null) }
     var showModeDialog by remember { mutableStateOf(false) }
+    var expandedIds by remember { mutableStateOf(setOf<String>()) }
+    var showIdle by remember { mutableStateOf(false) }
+
+    // Category groups keep a long list readable: one collapsible section per
+    // group with aggregate figures.
+    val groups = state.rows
+        .groupBy { (it.groupId ?: "__none__") to (it.groupName ?: "Ungrouped") }
+        .map { (key, rows) ->
+            BudgetGroup(key.first, key.second, rows.sortedBy { it.shortName.lowercase() })
+        }
+        .sortedBy { it.name.lowercase() }
+    val (active, idle) = groups.partition { it.hasActivity }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item(key = "header") {
@@ -125,9 +151,54 @@ private fun BudgetsTab(
                 }
             }
         }
-        items(state.rows, key = { it.categoryId }) { row ->
-            BudgetRow(row = row, onClick = { editRow = row })
+        items(active, key = { it.key }) { group ->
+            val expanded = group.key in expandedIds
+            BudgetGroupHeader(
+                group = group,
+                expanded = expanded,
+                onToggle = {
+                    expandedIds = if (expanded) expandedIds - group.key
+                    else expandedIds + group.key
+                },
+            )
+            if (expanded) {
+                group.rows.forEach { row ->
+                    BudgetRow(row = row, onClick = { editRow = row }, indent = true)
+                }
+            }
             HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
+        }
+        if (idle.isNotEmpty()) {
+            item(key = "idle_toggle") {
+                TextButton(
+                    onClick = { showIdle = !showIdle },
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
+                ) {
+                    val idleCount = idle.sumOf { it.rows.size }
+                    Text(
+                        if (showIdle) "Hide categories with no budget or spending"
+                        else "$idleCount categories with no budget or spending",
+                    )
+                }
+            }
+            if (showIdle) {
+                items(idle, key = { "idle_${it.key}" }) { group ->
+                    val expanded = group.key in expandedIds
+                    BudgetGroupHeader(
+                        group = group,
+                        expanded = expanded,
+                        onToggle = {
+                            expandedIds = if (expanded) expandedIds - group.key
+                            else expandedIds + group.key
+                        },
+                    )
+                    if (expanded) {
+                        group.rows.forEach { row ->
+                            BudgetRow(row = row, onClick = { editRow = row }, indent = true)
+                        }
+                    }
+                }
+            }
         }
         if (state.rows.isEmpty()) {
             item(key = "empty") {
@@ -228,14 +299,84 @@ private fun SummaryLine(label: String, value: String, valueColor: androidx.compo
     }
 }
 
+/** Collapsible header for a category group: aggregate figures + progress. */
 @Composable
-private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit) {
+private fun BudgetGroupHeader(
+    group: BudgetGroup,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val moneyColors = LocalMoneyColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess
+                    else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = Spacing.sm),
+                )
+                Column {
+                    Text(group.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${group.rows.size} " +
+                            if (group.rows.size == 1) "category" else "categories",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                text = if (group.available > 0)
+                    "${Money.format(group.spent)} / ${Money.format(group.available)}"
+                else Money.format(group.spent),
+                style = MaterialTheme.typography.titleMedium,
+                color = when {
+                    group.overBudget -> moneyColors.loss
+                    group.available > 0 -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        if (group.available > 0) {
+            LinearProgressIndicator(
+                progress = { (group.spent.toFloat() / group.available).coerceIn(0f, 1f) },
+                color = if (group.overBudget) moneyColors.loss
+                else MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit, indent: Boolean = false) {
     val moneyColors = LocalMoneyColors.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(
+                start = if (indent) Spacing.xl else Spacing.md,
+                end = Spacing.md,
+                top = Spacing.sm,
+                bottom = Spacing.sm,
+            ),
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -246,12 +387,16 @@ private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit) {
                 Icon(
                     imageVector = IconCatalog.get(row.icon) ?: Icons.Filled.Category,
                     contentDescription = null,
-                    tint = if (row.icon != null) MaterialTheme.colorScheme.primary
+                    // Category icons take the accent role, not primary
+                    tint = if (row.icon != null) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(end = Spacing.sm),
                 )
                 Column {
-                    Text(row.displayName, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (indent) row.shortName else row.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                     if (row.carryIn > 0) {
                         Text(
                             "includes ${Money.format(row.carryIn)} carried over",

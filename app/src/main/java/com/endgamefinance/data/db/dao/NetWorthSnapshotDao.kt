@@ -28,6 +28,13 @@ interface NetWorthSnapshotDao {
     )
     suspend fun forDay(dayStartMs: Long, dayEndMs: Long): NetWorthSnapshot?
 
+    @Query("DELETE FROM net_worth_snapshots")
+    suspend fun clearAll()
+
+    /** Earliest transaction in the ledger, for sizing the backfill window. */
+    @Query("SELECT MIN(timestamp) FROM transactions")
+    suspend fun earliestTransactionMs(): Long?
+
     @Insert
     suspend fun insert(snapshot: NetWorthSnapshot)
 

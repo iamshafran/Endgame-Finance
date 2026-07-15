@@ -54,6 +54,32 @@ interface AccountDao {
     @Query("SELECT accounts.*, $BALANCE_SUBQUERY AS balance FROM accounts WHERE id = :id")
     suspend fun getWithBalance(id: String): AccountWithBalance?
 
+    /**
+     * Balances as they stood at [endMs] (exclusive) — same derivation as
+     * [observeActiveWithBalances] but time-bounded, for historical day views.
+     */
+    @Query(
+        """
+        SELECT accounts.*, COALESCE((
+            SELECT SUM(CASE
+                WHEN t.type = 'income'   AND t.account_id    = accounts.id THEN s.amount
+                WHEN t.type = 'expense'  AND t.account_id    = accounts.id THEN -s.amount
+                WHEN t.type = 'transfer' AND t.account_id    = accounts.id THEN -s.amount
+                WHEN t.type = 'transfer' AND t.to_account_id = accounts.id
+                    THEN (CASE WHEN s.category_id IS NULL THEN s.amount ELSE 0 END)
+                ELSE 0 END)
+            FROM transactions t
+            JOIN transaction_splits s ON s.transaction_id = t.id
+            WHERE (t.account_id = accounts.id OR t.to_account_id = accounts.id)
+              AND t.timestamp < :endMs
+        ), 0) AS balance
+        FROM accounts
+        WHERE is_active = 1
+        ORDER BY type, name
+        """,
+    )
+    suspend fun balancesAsOf(endMs: Long): List<AccountWithBalance>
+
     /** ALL accounts including archived — history math must span everything. */
     @Query("SELECT accounts.*, $BALANCE_SUBQUERY AS balance FROM accounts")
     suspend fun allWithBalancesOnce(): List<AccountWithBalance>
@@ -80,6 +106,9 @@ interface AccountDao {
 
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getById(id: String): Account?
+
+    @Query("SELECT * FROM accounts")
+    suspend fun getAllOnce(): List<Account>
 
     @Query("SELECT * FROM accounts WHERE is_active = 1 ORDER BY type, name")
     fun observeActive(): Flow<List<Account>>

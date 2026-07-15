@@ -71,9 +71,11 @@ class TransactionEntryViewModel(
     val tags = db.tagDao().observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val categories: StateFlow<List<CategoryChoice>> =
-        db.categoryDao().observeAll()
-            .map { categoryChoices(it) }
+    val categories: StateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>> =
+        kotlinx.coroutines.flow.combine(
+            db.categoryDao().observeAll(),
+            db.categoryGroupDao().observeAll(),
+        ) { cats, groups -> com.endgamefinance.ui.components.categoryPickItems(cats, groups) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _payeeSuggestions = MutableStateFlow<List<String>>(emptyList())
@@ -94,13 +96,31 @@ class TransactionEntryViewModel(
         _payeeSuggestions.value = emptyList()
     }
 
-    /** Last amount/category used with this payee, for one-tap prefill. */
+    // Fuzzy payee→category profile (M7.4). Built lazily from history; exact
+    // matches still win via latestForPayee below.
+    private var suggester: com.endgamefinance.data.ai.CategorySuggester? = null
+
+    private suspend fun suggester(): com.endgamefinance.data.ai.CategorySuggester =
+        suggester ?: com.endgamefinance.data.ai.CategorySuggester.build(
+            db.transactionDao().payeeCategoryHistory().map { it.payee to it.categoryId },
+        ).also { suggester = it }
+
+    /** Last amount/category used with this payee, for one-tap prefill. Falls
+     *  back to the fuzzy history profile when the payee is new but similar to
+     *  a known one ("Sainsburys Hemel" → Groceries). */
     suspend fun prefillForPayee(payee: String): PayeePrefill {
-        val last = db.transactionDao().latestForPayee(payee) ?: return PayeePrefill(null, null)
-        val splits = db.transactionDao().splitsFor(last.id)
+        val last = db.transactionDao().latestForPayee(payee)
+        if (last != null) {
+            val splits = db.transactionDao().splitsFor(last.id)
+            return PayeePrefill(
+                amountCents = splits.sumOf { it.amount }.takeIf { it > 0 },
+                categoryId = splits.firstOrNull()?.categoryId
+                    ?: suggester().suggest(payee)?.categoryId,
+            )
+        }
         return PayeePrefill(
-            amountCents = splits.sumOf { it.amount }.takeIf { it > 0 },
-            categoryId = splits.firstOrNull()?.categoryId,
+            amountCents = null,
+            categoryId = suggester().suggest(payee)?.categoryId,
         )
     }
 

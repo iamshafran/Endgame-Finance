@@ -36,6 +36,8 @@ interface BackupDao {
     // ---- Full-table reads for backup ----
     @Query("SELECT * FROM accounts") suspend fun allAccounts(): List<Account>
     @Query("SELECT * FROM categories") suspend fun allCategories(): List<Category>
+    @Query("SELECT * FROM category_groups")
+    suspend fun allCategoryGroups(): List<com.endgamefinance.data.db.entity.CategoryGroup>
     @Query("SELECT * FROM tags") suspend fun allTags(): List<Tag>
     @Query("SELECT * FROM transaction_tags") suspend fun allTransactionTags(): List<TransactionTag>
     @Query("SELECT * FROM transactions") suspend fun allTransactions(): List<TransactionEntity>
@@ -58,12 +60,15 @@ interface BackupDao {
     @Query("DELETE FROM envelopes") suspend fun clearEnvelopes()
     @Query("DELETE FROM tags") suspend fun clearTags()
     @Query("DELETE FROM categories") suspend fun clearCategories()
+    @Query("DELETE FROM category_groups") suspend fun clearCategoryGroups()
     @Query("DELETE FROM accounts") suspend fun clearAccounts()
     @Query("DELETE FROM net_worth_snapshots") suspend fun clearSnapshots()
 
     // ---- Bulk inserts for restore ----
     @Insert suspend fun insertAccounts(rows: List<Account>)
     @Insert suspend fun insertCategories(rows: List<Category>)
+    @Insert
+    suspend fun insertCategoryGroups(rows: List<com.endgamefinance.data.db.entity.CategoryGroup>)
     @Insert suspend fun insertTags(rows: List<Tag>)
     @Insert suspend fun insertTransactionTags(rows: List<TransactionTag>)
     @Insert suspend fun insertTransactions(rows: List<TransactionEntity>)

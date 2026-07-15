@@ -2,17 +2,38 @@ package com.endgamefinance.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.composables.icons.lucide.*
+
+/** Selectable icon style for category icons (persisted in AppSettings). */
+enum class IconStyle(val key: String, val label: String) {
+    MATERIAL("material", "Material"),
+    LUCIDE("lucide", "Lucide"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): IconStyle =
+            entries.firstOrNull { it.key == key } ?: MATERIAL
+    }
+}
 
 /**
- * Large curated subset of the Material (Filled) icon set for categories.
- * Keys are stored in categories.icon — NEVER rename or remove an existing key
- * without a migration, or already-assigned category icons will break.
- * New icons may be appended freely.
+ * Large curated subset of the Material (Filled) icon set for categories, with
+ * an optional Lucide skin: the same persisted keys resolve to Lucide vectors
+ * when [style] is LUCIDE (falling back to Material where Lucide has no
+ * equivalent). Keys are stored in categories.icon — NEVER rename or remove an
+ * existing key without a migration, or already-assigned category icons will
+ * break. New icons may be appended freely.
  */
 object IconCatalog {
 
-    val entries: List<Pair<String, ImageVector>> = listOf(
+    /** Active style; snapshot-backed so icon consumers recompose on change. */
+    var style by mutableStateOf(IconStyle.MATERIAL)
+
+    private val materialEntries: List<Pair<String, ImageVector>> = listOf(
         // ---- Food & drink ----
         "restaurant" to Icons.Filled.Restaurant,
         "restaurant_menu" to Icons.Filled.RestaurantMenu,
@@ -319,9 +340,331 @@ object IconCatalog {
         "category" to Icons.Filled.Category,
     )
 
-    private val byKey = entries.toMap()
+    // Lucide equivalents for the same persisted keys. Keys absent here fall
+    // back to their Material vector, so partial coverage is safe.
+    private val lucideOverrides: Map<String, ImageVector> = mapOf(
+        // Food & drink
+        "restaurant" to Lucide.Utensils,
+        "restaurant_menu" to Lucide.UtensilsCrossed,
+        "fastfood" to Lucide.Sandwich,
+        "cafe" to Lucide.Coffee,
+        "coffee" to Lucide.Coffee,
+        "bar" to Lucide.Martini,
+        "wine" to Lucide.Wine,
+        "liquor" to Lucide.Beer,
+        "sports_bar" to Lucide.Beer,
+        "pizza" to Lucide.Pizza,
+        "dining" to Lucide.Utensils,
+        "lunch" to Lucide.Sandwich,
+        "dinner" to Lucide.UtensilsCrossed,
+        "brunch" to Lucide.Croissant,
+        "ramen" to Lucide.Soup,
+        "bakery" to Lucide.Croissant,
+        "cake" to Lucide.Cake,
+        "egg" to Lucide.Egg,
+        "kitchen" to Lucide.CookingPot,
+        "groceries" to Lucide.ShoppingCart,
+        "basket" to Lucide.ShoppingBasket,
+        // Transport
+        "car" to Lucide.Car,
+        "car_repair" to Lucide.Wrench,
+        "ev_station" to Lucide.PlugZap,
+        "bus" to Lucide.Bus,
+        "subway" to Lucide.TrainFront,
+        "transit" to Lucide.TramFront,
+        "railway" to Lucide.TrainTrack,
+        "train" to Lucide.TrainFront,
+        "tram" to Lucide.TramFront,
+        "boat" to Lucide.Ship,
+        "sailing" to Lucide.Sailboat,
+        "bike" to Lucide.Bike,
+        "pedal_bike" to Lucide.Bike,
+        "walk" to Lucide.Footprints,
+        "taxi" to Lucide.CarTaxiFront,
+        "shuttle" to Lucide.BusFront,
+        "commute" to Lucide.Car,
+        "shipping" to Lucide.Truck,
+        "flight" to Lucide.Plane,
+        "flight_takeoff" to Lucide.PlaneTakeoff,
+        "flight_land" to Lucide.PlaneLanding,
+        "airport" to Lucide.Plane,
+        "gas" to Lucide.Fuel,
+        // Home & utilities
+        "home" to Lucide.House,
+        "house" to Lucide.House,
+        "apartment" to Lucide.Building2,
+        "cottage" to Lucide.House,
+        "villa" to Lucide.House,
+        "cabin" to Lucide.House,
+        "furniture" to Lucide.Armchair,
+        "bed" to Lucide.Bed,
+        "weekend" to Lucide.Sofa,
+        "bathtub" to Lucide.Bath,
+        "yard" to Lucide.Flower2,
+        "grass" to Lucide.Sprout,
+        "florist" to Lucide.Flower,
+        "fireplace" to Lucide.Flame,
+        "plumbing" to Lucide.Wrench,
+        "handyman" to Lucide.Hammer,
+        "tools" to Lucide.Wrench,
+        "construction" to Lucide.HardHat,
+        "electrical" to Lucide.PlugZap,
+        "electricity" to Lucide.Zap,
+        "power" to Lucide.Power,
+        "light" to Lucide.Lightbulb,
+        "thermostat" to Lucide.Thermometer,
+        "sensors" to Lucide.Radar,
+        "water" to Lucide.Droplet,
+        "wifi" to Lucide.Wifi,
+        "router" to Lucide.Router,
+        "laundry" to Lucide.WashingMachine,
+        "cleaning" to Lucide.Brush,
+        "microwave" to Lucide.Microwave,
+        // Health & fitness
+        "hospital" to Lucide.Hospital,
+        "medical" to Lucide.Stethoscope,
+        "medication" to Lucide.Pill,
+        "healing" to Lucide.Bandage,
+        "vaccines" to Lucide.Syringe,
+        "heart_monitor" to Lucide.HeartPulse,
+        "bloodtype" to Lucide.Droplet,
+        "emergency" to Lucide.Siren,
+        "psychology" to Lucide.Brain,
+        "fitness" to Lucide.Dumbbell,
+        "hiking" to Lucide.Mountain,
+        "pool" to Lucide.Waves,
+        "surfing" to Lucide.Waves,
+        "esports" to Lucide.Gamepad2,
+        // Shopping & personal
+        "cart" to Lucide.ShoppingCart,
+        "shopping" to Lucide.ShoppingBag,
+        "store" to Lucide.Store,
+        "storefront" to Lucide.Store,
+        "mall" to Lucide.ShoppingBag,
+        "offer" to Lucide.Tag,
+        "sell" to Lucide.Tags,
+        "loyalty" to Lucide.BadgePercent,
+        "clothes" to Lucide.Shirt,
+        "diamond" to Lucide.Gem,
+        "watch" to Lucide.Watch,
+        "haircut" to Lucide.Scissors,
+        "beauty" to Lucide.Brush,
+        "face" to Lucide.Smile,
+        "gift" to Lucide.Gift,
+        "redeem" to Lucide.Gift,
+        // Entertainment & leisure
+        "movie" to Lucide.Film,
+        "tv" to Lucide.Tv,
+        "live_tv" to Lucide.MonitorPlay,
+        "music" to Lucide.Music,
+        "library_music" to Lucide.Music,
+        "album" to Lucide.Disc,
+        "headphones" to Lucide.Headphones,
+        "speaker" to Lucide.Speaker,
+        "radio" to Lucide.Radio,
+        "podcasts" to Lucide.Podcast,
+        "mic" to Lucide.Mic,
+        "piano" to Lucide.Piano,
+        "games" to Lucide.Gamepad2,
+        "videogame" to Lucide.Gamepad,
+        "toys" to Lucide.ToyBrick,
+        "smart_toy" to Lucide.Bot,
+        "extension" to Lucide.Puzzle,
+        "casino" to Lucide.Dice5,
+        "celebration" to Lucide.PartyPopper,
+        "festival" to Lucide.Tent,
+        "attractions" to Lucide.FerrisWheel,
+        "camera" to Lucide.Camera,
+        "photo_camera" to Lucide.Camera,
+        "videocam" to Lucide.Video,
+        "photo" to Lucide.Image,
+        "collections" to Lucide.Images,
+        "palette" to Lucide.Palette,
+        "draw" to Lucide.PenTool,
+        "color_lens" to Lucide.Palette,
+        "book" to Lucide.BookOpen,
+        "auto_stories" to Lucide.BookOpen,
+        "library" to Lucide.Library,
+        // Travel
+        "luggage" to Lucide.Luggage,
+        "backpack" to Lucide.Backpack,
+        "hotel" to Lucide.Hotel,
+        "map" to Lucide.Map,
+        "explore" to Lucide.Compass,
+        "travel_explore" to Lucide.Globe,
+        "public" to Lucide.Globe,
+        "terrain" to Lucide.Mountain,
+        "landscape" to Lucide.Mountain,
+        "park" to Lucide.Trees,
+        "forest" to Lucide.Trees,
+        "museum" to Lucide.Landmark,
+        "castle" to Lucide.Castle,
+        "city" to Lucide.Building2,
+        "place" to Lucide.MapPin,
+        "tour" to Lucide.Flag,
+        "ticket" to Lucide.Ticket,
+        // Education & work
+        "school" to Lucide.GraduationCap,
+        "science" to Lucide.FlaskConical,
+        "biotech" to Lucide.Microscope,
+        "calculate" to Lucide.Calculator,
+        "history_edu" to Lucide.Feather,
+        "class" to Lucide.BookOpen,
+        "grade" to Lucide.Star,
+        "trophy" to Lucide.Trophy,
+        "premium" to Lucide.Medal,
+        "military_tech" to Lucide.Medal,
+        "work" to Lucide.Briefcase,
+        "business" to Lucide.Briefcase,
+        "company" to Lucide.Building,
+        "badge" to Lucide.BadgeCheck,
+        "engineering" to Lucide.HardHat,
+        "architecture" to Lucide.DraftingCompass,
+        "design" to Lucide.PenTool,
+        "gavel" to Lucide.Gavel,
+        "balance" to Lucide.Scale,
+        "policy" to Lucide.ShieldCheck,
+        "description" to Lucide.FileText,
+        "article" to Lucide.Newspaper,
+        "assignment" to Lucide.ClipboardList,
+        "print" to Lucide.Printer,
+        "computer" to Lucide.Monitor,
+        "laptop" to Lucide.Laptop,
+        "keyboard" to Lucide.Keyboard,
+        "memory" to Lucide.Cpu,
+        "storage" to Lucide.HardDrive,
+        "cloud" to Lucide.Cloud,
+        "code" to Lucide.Code,
+        "terminal" to Lucide.Terminal,
+        // Money & finance
+        "money" to Lucide.DollarSign,
+        "monetization" to Lucide.CircleDollarSign,
+        "money_bag" to Lucide.Banknote,
+        "payments" to Lucide.Banknote,
+        "paid" to Lucide.BadgeDollarSign,
+        "request_quote" to Lucide.FileText,
+        "receipt" to Lucide.ReceiptText,
+        "receipt_short" to Lucide.Receipt,
+        "bank" to Lucide.Landmark,
+        "wallet" to Lucide.Wallet,
+        "savings" to Lucide.PiggyBank,
+        "card" to Lucide.CreditCard,
+        "credit_score" to Lucide.Gauge,
+        "atm" to Lucide.Banknote,
+        "pos" to Lucide.CreditCard,
+        "toll" to Lucide.Coins,
+        "currency_exchange" to Lucide.ArrowLeftRight,
+        "bitcoin" to Lucide.Bitcoin,
+        "trending_up" to Lucide.TrendingUp,
+        "trending_down" to Lucide.TrendingDown,
+        "percent" to Lucide.Percent,
+        "insights" to Lucide.Sparkles,
+        // Family & people
+        "pets" to Lucide.PawPrint,
+        "cruelty_free" to Lucide.Rabbit,
+        "child" to Lucide.Baby,
+        "child_friendly" to Lucide.Baby,
+        "stroller" to Lucide.Baby,
+        "family" to Lucide.Users,
+        "woman" to Lucide.User,
+        "man" to Lucide.User,
+        "boy" to Lucide.User,
+        "girl" to Lucide.User,
+        "elderly" to Lucide.PersonStanding,
+        "people" to Lucide.Users,
+        "group" to Lucide.Users,
+        "diversity" to Lucide.HeartHandshake,
+        // Symbols & misc
+        "insurance" to Lucide.ShieldCheck,
+        "shield" to Lucide.Shield,
+        "verified" to Lucide.BadgeCheck,
+        "lock" to Lucide.Lock,
+        "umbrella" to Lucide.Umbrella,
+        "church" to Lucide.Church,
+        "favorite" to Lucide.Heart,
+        "star" to Lucide.Star,
+        "bookmark" to Lucide.Bookmark,
+        "label" to Lucide.Tag,
+        "flag" to Lucide.Flag,
+        "interests" to Lucide.Shapes,
+        "recycling" to Lucide.Recycle,
+        "eco" to Lucide.Leaf,
+        "leaf" to Lucide.Leaf,
+        "sunny" to Lucide.Sun,
+        "ac_unit" to Lucide.Snowflake,
+        "fire" to Lucide.Flame,
+        "anchor" to Lucide.Anchor,
+        "rocket" to Lucide.Rocket,
+        "phone" to Lucide.Phone,
+        "mobile" to Lucide.Smartphone,
+        "tablet" to Lucide.Tablet,
+        "headset" to Lucide.Headphones,
+        "battery" to Lucide.BatteryFull,
+        "settings" to Lucide.Settings,
+        "category" to Lucide.Shapes,
+        // Coverage completers — Lucide lacks direct twins for these, so the
+        // nearest-meaning glyph stands in (keeps the whole catalog switchable).
+        "nightlife" to Lucide.Martini,
+        "icecream" to Lucide.IceCreamCone,
+        "car_rental" to Lucide.KeyRound,
+        "electric_car" to Lucide.CarFront,
+        "moped" to Lucide.Bike,
+        "motorcycle" to Lucide.Bike,
+        "parking" to Lucide.SquareParking,
+        "countertops" to Lucide.PanelTop,
+        "deck" to Lucide.Fence,
+        "roofing" to Lucide.Construction,
+        "foundation" to Lucide.BrickWall,
+        "iron" to Lucide.Shirt,
+        "blender" to Lucide.GlassWater,
+        "masks" to Lucide.Drama,
+        "self_improvement" to Lucide.Sparkles,
+        "spa" to Lucide.Flower,
+        "run" to Lucide.Footprints,
+        "skiing" to Lucide.MountainSnow,
+        "snowboard" to Lucide.MountainSnow,
+        "skateboard" to Lucide.Activity,
+        "soccer" to Lucide.Target,
+        "basketball" to Lucide.Target,
+        "baseball" to Lucide.Target,
+        "tennis" to Lucide.Target,
+        "football" to Lucide.Target,
+        "golf" to Lucide.Flag,
+        "hockey" to Lucide.Activity,
+        "volleyball" to Lucide.Target,
+        "cricket" to Lucide.Target,
+        "mma" to Lucide.Dumbbell,
+        "motorsports" to Lucide.Gauge,
+        "theater" to Lucide.Drama,
+        "comedy" to Lucide.Drama,
+        "beach" to Lucide.TreePalm,
+        "price_check" to Lucide.BadgeDollarSign,
+        "chart" to Lucide.ChartLine,
+        "bar_chart" to Lucide.ChartColumn,
+        "pie_chart" to Lucide.ChartPie,
+        "analytics" to Lucide.ChartLine,
+        "mosque" to Lucide.Landmark,
+        "synagogue" to Lucide.Landmark,
+        "temple_buddhist" to Lucide.Landmark,
+        "temple_hindu" to Lucide.Landmark,
+        "whatshot" to Lucide.Flame,
+        "sim" to Lucide.Smartphone,
+    )
 
-    fun get(key: String?): ImageVector? = key?.let { byKey[it] }
+    private val byKeyMaterial = materialEntries.toMap()
+
+    /** Catalog in the active style (picker grid + search). */
+    val entries: List<Pair<String, ImageVector>>
+        get() = if (style == IconStyle.LUCIDE) {
+            materialEntries.map { (key, vector) -> key to (lucideOverrides[key] ?: vector) }
+        } else {
+            materialEntries
+        }
+
+    fun get(key: String?): ImageVector? = key?.let {
+        if (style == IconStyle.LUCIDE) lucideOverrides[it] ?: byKeyMaterial[it]
+        else byKeyMaterial[it]
+    }
 
     fun search(query: String): List<Pair<String, ImageVector>> =
         if (query.isBlank()) entries

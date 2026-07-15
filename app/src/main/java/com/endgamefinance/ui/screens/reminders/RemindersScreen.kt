@@ -13,13 +13,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -34,13 +40,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.endgamefinance.data.ai.LoanInterestEstimator
+import com.endgamefinance.data.db.entity.Category
 import com.endgamefinance.data.db.entity.Reminder
+import com.endgamefinance.ui.components.DropdownField
+import kotlinx.coroutines.launch
 import com.endgamefinance.ui.screens.PlaceholderScreen
 import com.endgamefinance.ui.theme.LocalMoneyColors
 import com.endgamefinance.ui.theme.Spacing
@@ -53,10 +65,11 @@ import java.util.Date
 fun RemindersScreen(
     onAddReminder: () -> Unit,
     onEditReminder: (String) -> Unit,
+    initialSection: String = "bills",
     viewModel: RemindersViewModel =
         viewModel(factory = RemindersViewModel.factory(LocalContext.current)),
 ) {
-    var section by remember { mutableStateOf("bills") }
+    var section by remember { mutableStateOf(initialSection) }
 
     // Ask for the notification permission when the user first lands here —
     // the one place its purpose is self-evident. Declining just means
@@ -118,10 +131,18 @@ private fun BillsTab(
     val state by viewModel.uiState.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val message by viewModel.message.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     var postTarget by remember { mutableStateOf<Reminder?>(null) }
+    var loanTarget by remember { mutableStateOf<ReminderUi?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            // Last row scrolls clear of the FAB
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = Spacing.fabClearance,
+            ),
+        ) {
             if (state.due.isNotEmpty() || state.upcoming.isNotEmpty()) {
                 item(key = "planned_totals_top") {
                     PlannedTotalsCard(state)
@@ -148,8 +169,11 @@ private fun BillsTab(
                         row = row,
                         onClick = { onEditReminder(row.reminder.id) },
                         onPost = {
-                            if (row.reminder.amount == null) postTarget = row.reminder
-                            else viewModel.post(row.reminder)
+                            when {
+                                row.isLoanPayment -> loanTarget = row
+                                row.reminder.amount == null -> postTarget = row.reminder
+                                else -> viewModel.post(row.reminder)
+                            }
                         },
                         onSkip = { viewModel.skip(row.reminder) },
                     )
@@ -164,8 +188,15 @@ private fun BillsTab(
                     ReminderRow(
                         row = row,
                         onClick = { onEditReminder(row.reminder.id) },
-                        onPost = null,
-                        onSkip = null,
+                        onPost = {
+                            when {
+                                row.isLoanPayment -> loanTarget = row
+                                row.reminder.amount == null -> postTarget = row.reminder
+                                else -> viewModel.post(row.reminder)
+                            }
+                        },
+                        onSkip = { viewModel.skip(row.reminder) },
+                        postLabel = "Pay early",
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
                 }
@@ -206,6 +237,148 @@ private fun BillsTab(
             onDismiss = { postTarget = null },
         )
     }
+
+    loanTarget?.let { row ->
+        LoanPaymentDialog(
+            row = row,
+            categories = categories,
+            viewModel = viewModel,
+            onDismiss = { loanTarget = null },
+        )
+    }
+}
+
+@Composable
+private fun LoanPaymentDialog(
+    row: ReminderUi,
+    categories: List<Category>,
+    viewModel: RemindersViewModel,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val loanId = row.reminder.toAccountId ?: return
+    var paymentText by remember {
+        mutableStateOf(row.reminder.amount?.let { Money.formatPlain(it) } ?: "")
+    }
+    var interestText by remember { mutableStateOf("") }
+    var interestCategoryId by remember { mutableStateOf(viewModel.defaultInterestCategoryId()) }
+    var estimating by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    val categoryGroups by viewModel.categoryGroups.collectAsState()
+    val expenseOptions = remember(categories, categoryGroups) {
+        com.endgamefinance.ui.components.categoryPickItems(
+            categories.filter { it.type == Category.TYPE_EXPENSE },
+            categoryGroups,
+        )
+    }
+
+    fun runEstimate() {
+        val payment = Money.parse(paymentText.trim())
+        if (payment == null || payment <= 0) { error = "Enter the payment amount first"; return }
+        estimating = true; error = null
+        scope.launch {
+            val est = viewModel.estimateLoanInterest(loanId, payment)
+            interestText = Money.formatPlain(est.interestCents)
+            note = when (est.source) {
+                LoanInterestEstimator.Source.AI ->
+                    "Estimated on-device from your past payments — adjust if needed."
+                LoanInterestEstimator.Source.HISTORY ->
+                    "Estimated from your most recent payment's split — adjust if needed."
+                LoanInterestEstimator.Source.NONE ->
+                    "No payment history yet — enter the interest portion yourself."
+            }
+            estimating = false
+        }
+    }
+
+    LaunchedEffect(Unit) { if (row.reminder.amount != null) runEstimate() }
+
+    val payment = Money.parse(paymentText.trim())
+    val interest = Money.parse(interestText.trim()) ?: 0L
+    val principal = payment?.let { (it - interest).coerceAtLeast(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(row.reminder.name) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    "Split this payment into principal and interest. The interest is a " +
+                        "suggestion — check it before posting.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = paymentText,
+                    onValueChange = { paymentText = it },
+                    label = { Text("Payment amount") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    TextButton(onClick = { runEstimate() }, enabled = !estimating) {
+                        Text("Estimate interest")
+                    }
+                    if (estimating) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                }
+                OutlinedTextField(
+                    value = interestText,
+                    onValueChange = { interestText = it },
+                    label = { Text("Interest") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                com.endgamefinance.ui.components.CategoryPickerField(
+                    label = "Interest category",
+                    items = expenseOptions,
+                    selectedId = interestCategoryId,
+                    onSelect = { interestCategoryId = it },
+                    nullLabel = "No category",
+                )
+                principal?.let {
+                    Text(
+                        "Principal (reduces the loan): ${Money.format(it)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                note?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                error?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val p = Money.parse(paymentText.trim())
+                if (p == null || p <= 0) { error = "Payment must be a positive number"; return@Button }
+                val i = Money.parse(interestText.trim()) ?: 0L
+                if (i < 0 || i > p) { error = "Interest can't exceed the payment"; return@Button }
+                if (i > 0 && interestCategoryId == null) {
+                    error = "Pick a category for the interest"; return@Button
+                }
+                viewModel.postLoanPayment(row.reminder, p, i, interestCategoryId)
+                onDismiss()
+            }) { Text("Post payment") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -312,12 +485,14 @@ private fun SectionHeader(title: String, color: androidx.compose.ui.graphics.Col
     )
 }
 
+/** Shared with CalendarTab's day detail — keep it presentation-only. */
 @Composable
-private fun ReminderRow(
+internal fun ReminderRow(
     row: ReminderUi,
     onClick: () -> Unit,
     onPost: (() -> Unit)?,
     onSkip: (() -> Unit)?,
+    postLabel: String = "Post now",
 ) {
     val moneyColors = LocalMoneyColors.current
     Column(
@@ -331,6 +506,35 @@ private fun ReminderRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            // Leading icon rail, matching ledger rows: category icon for
+            // bills/income, transfer glyph for repayments/transfers.
+            val isTransferReminder = row.toAccountName != null
+            Box(
+                modifier = Modifier
+                    .padding(end = Spacing.sm)
+                    .size(40.dp)
+                    .background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = when {
+                        isTransferReminder -> Icons.Filled.SwapHoriz
+                        else -> com.endgamefinance.ui.components.IconCatalog
+                            .get(row.categoryIcon) ?: Icons.Filled.Category
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        isTransferReminder -> moneyColors.transfer
+                        row.categoryIcon == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        row.isIncome -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.tertiary
+                    },
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.reminder.name, style = MaterialTheme.typography.bodyLarge)
                 val subtitle = buildString {
@@ -363,7 +567,7 @@ private fun ReminderRow(
             // transfers neutral
             val isTransfer = row.toAccountName != null
             val amountColor = when {
-                isTransfer -> MaterialTheme.colorScheme.onSurfaceVariant
+                isTransfer -> moneyColors.transfer
                 row.isIncome -> moneyColors.gain
                 else -> moneyColors.loss
             }
@@ -382,7 +586,7 @@ private fun ReminderRow(
         }
         if (onPost != null && onSkip != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                TextButton(onClick = onPost) { Text("Post now") }
+                TextButton(onClick = onPost) { Text(postLabel) }
                 TextButton(onClick = onSkip) {
                     Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

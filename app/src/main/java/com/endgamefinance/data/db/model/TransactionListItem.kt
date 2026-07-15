@@ -6,6 +6,7 @@ data class TransactionListItem(
     val payee: String,
     val timestamp: Long,
     val type: String,
+    val notes: String?,
     val isCleared: Boolean,
     val isShared: Boolean,
     val accountName: String,

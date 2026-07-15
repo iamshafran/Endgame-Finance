@@ -8,10 +8,17 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Tabular figures: every digit takes the same width, so money columns align
- * vertically. Apply to ANY text that renders an amount in a list.
+ * vertically. Apply to ANY text that renders an amount in a list. Also swaps
+ * in the theme's money font when the chosen [AppFont] pairs one (Plex Sans
+ * text + Plex Mono digits).
  */
 val TextStyle.tabular: TextStyle
-    get() = copy(fontFeatureSettings = "tnum")
+    @androidx.compose.runtime.Composable
+    @androidx.compose.runtime.ReadOnlyComposable
+    get() = copy(
+        fontFeatureSettings = "tnum",
+        fontFamily = LocalMoneyFontFamily.current ?: fontFamily,
+    )
 
 /** Material 3 scale bound to the chosen [family]; weights match the loaded faces. */
 fun endgameTypography(family: FontFamily): Typography = Typography(

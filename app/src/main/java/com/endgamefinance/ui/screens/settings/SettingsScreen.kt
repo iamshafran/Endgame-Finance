@@ -55,7 +55,11 @@ private val commonCurrencies = listOf(
 )
 
 @Composable
-fun SettingsScreen(onBack: (() -> Unit)? = null) {
+fun SettingsScreen(
+    onBack: (() -> Unit)? = null,
+    onOpenImport: (() -> Unit)? = null,
+    onOpenCapture: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val settings = AppSettings.get(context)
     val themeMode by settings.themeMode.collectAsState()
@@ -77,6 +81,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 AppSettings.THEME_SYSTEM to "System",
                 AppSettings.THEME_LIGHT to "Light",
                 AppSettings.THEME_DARK to "Dark",
+                AppSettings.THEME_OLED to "OLED",
             )
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 themeOptions.forEachIndexed { index, (value, label) ->
@@ -88,7 +93,8 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 }
             }
             Text(
-                "System follows your device's light/dark setting.",
+                "System follows your device's light/dark setting. OLED is dark " +
+                    "mode on true black — deepest contrast, kindest to OLED screens.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -107,8 +113,8 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 onSelect = { picked -> picked?.let { settings.setPalette(it) } },
             )
             Text(
-                "Evergreen is the default. Cyberpunk 2077 and Marathon are bold, " +
-                    "game-inspired looks — each still honors your light/dark choice.",
+                "Evergreen is the default. Cyberpunk and Marathoner are bold, " +
+                    "neon looks — each still honors your light/dark choice.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -127,9 +133,34 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 onSelect = { picked -> picked?.let { settings.setFontKey(it) } },
             )
             Text(
-                "IBM Plex Mono is the default. All bundled fonts are chosen for " +
-                    "readability; Atkinson Hyperlegible is designed for low-vision clarity. " +
-                    "Fonts ship with the app — nothing is downloaded.",
+                "IBM Plex Mono is the default. IBM Plex Sans pairs sans text with " +
+                    "Plex Mono digits so amounts stay column-aligned; Atkinson " +
+                    "Hyperlegible is designed for low-vision clarity. Fonts ship " +
+                    "with the app — nothing is downloaded.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            val iconStyleKey by settings.iconStyle.collectAsState()
+            Text(
+                "Category icons",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+            val iconOptions = com.endgamefinance.ui.components.IconStyle.entries
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                iconOptions.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = iconStyleKey == option.key,
+                        onClick = { settings.setIconStyle(option.key) },
+                        shape = SegmentedButtonDefaults.itemShape(index, iconOptions.size),
+                    ) { Text(option.label) }
+                }
+            }
+            Text(
+                "Material is the classic filled look; Lucide is a lighter outlined " +
+                    "set. Your chosen icons keep their meaning either way — icons " +
+                    "without a Lucide twin stay Material.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -180,6 +211,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             )
         }
 
+        // ---- AI ----
+        SettingsGroup("AI assistant") {
+            AiModelSetting()
+        }
+
         // ---- Security ----
         SettingsGroup("Security") {
             AppLockSettings()
@@ -191,6 +227,40 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             BackupSection()
         }
 
+        // ---- Migration ----
+        if (onOpenImport != null) {
+            SettingsGroup("Migrate") {
+                Text(
+                    "Coming from Bluecoins? Import its .fydb backup directly — " +
+                        "accounts, transfers, and reminders come across exactly. A " +
+                        "plain CSV export works too (the on-device AI maps its columns).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onOpenImport,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Import from Bluecoins") }
+            }
+        }
+
+        // ---- Notification capture (Milestone 8.1) ----
+        if (onOpenCapture != null) {
+            SettingsGroup("Automatic capture") {
+                Text(
+                    "Let Endgame draft transactions from your bank and card app " +
+                        "notifications. You pick the apps, confirm each one, and it's " +
+                        "all parsed on-device — nothing leaves your phone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onOpenCapture,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Set up notification capture") }
+            }
+        }
+
         // ---- About / privacy ----
         SettingsGroup("About") {
             InfoRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
@@ -200,9 +270,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                "Endgame Finance has no internet permission — your data never leaves " +
-                    "this device. The database is encrypted at rest, and backups are " +
-                    "password-protected files you control.",
+                "Your data never leaves this device: no analytics, no telemetry, no " +
+                    "sync. The database is encrypted at rest, and backups are " +
+                    "password-protected files you control. The app's only network use " +
+                    "is the optional AI model download you start in the AI section — " +
+                    "AI inference then runs fully on-device, offline.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -47,6 +47,11 @@ class BudgetPrefs(context: Context) {
 data class BudgetRowUi(
     val categoryId: String,
     val displayName: String,
+    /** Bare category name (no "Group › " prefix) for grouped rendering. */
+    val shortName: String,
+    /** Owning category group (required by the app; null only defensively). */
+    val groupId: String?,
+    val groupName: String?,
     val icon: String?,
     val allocated: Long?,
     val rolloverMode: String,
@@ -91,27 +96,35 @@ class BudgetViewModel(
                 db.budgetDao().observeForMonth(key),
                 db.budgetDao().observeSpentByCategory(start, end),
                 db.budgetDao().observeIncome(start, end),
-                db.categoryDao().observeAll(),
+                combine(
+                    db.categoryDao().observeAll(),
+                    db.categoryGroupDao().observeAll(),
+                ) { cats, groups -> cats to groups },
                 budgetPrefs.mode,
-            ) { budgets, spends, income, categories, mode ->
+            ) { budgets, spends, income, (categories, groups), mode ->
                 val allBudgets = db.budgetDao().allOnce()
                 val history = db.budgetDao().spentByCategoryMonth()
                 val carryIn = repo.carryInFor(key, allBudgets, history)
                 val spentByCat = spends.associateBy({ it.categoryId }, { it.spent })
                 val budgetByCat = budgets.associateBy { it.categoryId }
 
-                val rows = categoryChoices(categories)
+                val categoriesById = categories.associateBy { it.id }
+                val groupsById = groups.associateBy { it.id }
+                val rows = categoryChoices(categories, groups)
                     .filter { it.type == Category.TYPE_EXPENSE }
                     .map { choice ->
                         val budget = budgetByCat[choice.id]
                         val carry = carryIn[choice.id] ?: 0L
                         val spent = spentByCat[choice.id] ?: 0L
                         val available = (budget?.allocatedAmount ?: 0L) + carry
-                        val iconKey = categories.firstOrNull { it.id == choice.id }?.icon
+                        val category = categoriesById[choice.id]
                         BudgetRowUi(
                             categoryId = choice.id,
                             displayName = choice.displayName,
-                            icon = iconKey,
+                            shortName = category?.name ?: choice.displayName,
+                            groupId = category?.groupId,
+                            groupName = category?.groupId?.let { groupsById[it]?.name },
+                            icon = category?.icon,
                             allocated = budget?.allocatedAmount,
                             rolloverMode = budget?.rolloverMode ?: "reset",
                             carryIn = carry,

@@ -152,9 +152,11 @@ private fun OnboardingFlow(onDone: () -> Unit) {
 private fun WelcomeStep(onNext: () -> Unit) {
     Text("Welcome to Endgame Finance", style = MaterialTheme.typography.headlineMedium)
     Text(
-        "Your money, only on your phone. This app has no internet access — " +
-            "not reduced tracking, none. Everything is encrypted on your device, " +
-            "and backups are files you hold.",
+        "Your money, only on your phone. No analytics, no tracking, nothing " +
+            "sent anywhere. Everything is encrypted on your device, and backups " +
+            "are files you hold. The only time this app uses the network is an " +
+            "optional AI model download you start yourself — the AI then runs " +
+            "fully offline.",
         style = MaterialTheme.typography.bodyLarge,
     )
     Text(

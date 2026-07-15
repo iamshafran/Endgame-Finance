@@ -76,8 +76,9 @@ class ReportsViewModel(private val db: EndgameDatabase) : ViewModel() {
                 db.budgetDao().observeUncategorizedSpend(start, end),
                 db.budgetDao().observeIncome(start, end),
                 db.categoryDao().observeAll(),
-            ) { spends, uncategorized, income, categories ->
-                val choices = categoryChoices(categories).associateBy { it.id }
+                db.categoryGroupDao().observeAll(),
+            ) { spends, uncategorized, income, categories, groups ->
+                val choices = categoryChoices(categories, groups).associateBy { it.id }
                 val iconById = categories.associateBy({ it.id }, { it.icon })
                 val total = spends.sumOf { it.spent } + uncategorized
                 val rows = buildList {
@@ -147,8 +148,9 @@ class ReportsViewModel(private val db: EndgameDatabase) : ViewModel() {
                     MonthUtil.startMs(prior), MonthUtil.endMs(prior),
                 ),
                 db.categoryDao().observeAll(),
-            ) { currentSpends, priorSpends, categories ->
-                val choices = categoryChoices(categories).associateBy { it.id }
+                db.categoryGroupDao().observeAll(),
+            ) { currentSpends, priorSpends, categories, groups ->
+                val choices = categoryChoices(categories, groups).associateBy { it.id }
                 val iconById = categories.associateBy({ it.id }, { it.icon })
                 val currentByCat = currentSpends.associateBy({ it.categoryId }, { it.spent })
                 val priorByCat = priorSpends.associateBy({ it.categoryId }, { it.spent })

@@ -38,6 +38,16 @@ object Money {
         }
     }
 
+    /** Display symbol of the active currency ("$", "€", "RM", …). Falls back to
+     *  the code itself for unknown codes. Used anywhere money is rendered as
+     *  text outside [format] — e.g. the AI answer prompt. */
+    val symbol: String
+        get() = try {
+            Currency.getInstance(currencyCode).getSymbol(Locale.US)
+        } catch (e: Exception) {
+            currencyCode
+        }
+
     /** 123456 → "$1,234.56" / "€1,234.56"; -50 → "-$0.50". */
     fun format(cents: Long): String = formatter().format(BigDecimal(cents).movePointLeft(2))
 

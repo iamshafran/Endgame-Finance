@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Qualcomm QNN/NPU native libraries (~20 MB). The NPU path is unused on this
+# device (Samsung DSP policy); GPU inference uses the device's own OpenCL.
+# Kept on disk locally but out of git history.
+/app/src/main/jniLibs/

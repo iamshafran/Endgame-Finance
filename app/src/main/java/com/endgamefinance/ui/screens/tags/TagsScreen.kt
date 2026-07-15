@@ -93,6 +93,10 @@ fun TagsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // Last row scrolls clear of the FAB
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = Spacing.fabClearance,
+            ),
         ) {
             items(tags, key = { it.id }) { tag ->
                 Row(
