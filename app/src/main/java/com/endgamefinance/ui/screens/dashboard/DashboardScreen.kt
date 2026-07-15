@@ -240,18 +240,39 @@ fun DashboardScreen(
 private fun panelBorder() =
     BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
 
-/** Panel heading in the refs' voice: uppercase, terminated with an accent `//`. */
+/** TWIN-TAP-style header: solid primary strip, black uppercase title. */
 @Composable
-private fun PanelTitle(text: String, modifier: Modifier = Modifier) {
-    Row(modifier = modifier) {
-        Text(text.uppercase(), style = MaterialTheme.typography.titleMedium)
+private fun HeaderStrip(title: String, trailing: String? = null) {
+    val strip = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(strip)
+            .padding(horizontal = Spacing.md, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            " //",
+            title.uppercase(),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            color = com.endgamefinance.ui.components.onChipColor(strip),
         )
+        if (trailing != null) {
+            Text(
+                trailing,
+                style = MaterialTheme.typography.titleMedium.tabular,
+                color = com.endgamefinance.ui.components.onChipColor(strip),
+            )
+        }
     }
 }
+
+/** Subtle accent wash for widget bodies. */
+@Composable
+private fun washBrush() = androidx.compose.ui.graphics.Brush.verticalGradient(
+    0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+    1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
+)
 
 @Composable
 private fun NetWorthCard(
@@ -270,20 +291,11 @@ private fun NetWorthCard(
         border = panelBorder(),
     ) {
         Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.md),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                PanelTitle("Net worth")
-                Text(
-                    Money.format(netWorth),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (netWorth >= 0) moneyColors.gain else moneyColors.loss,
-                )
+            HeaderStrip("Net worth", Money.format(netWorth))
+            Column(modifier = Modifier.background(washBrush())) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                NetWorthChart(snapshots = snapshots)
             }
-            NetWorthChart(snapshots = snapshots)
         }
     }
 }
@@ -301,15 +313,12 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
         border = panelBorder(),
     ) {
         Column {
-            PanelTitle(
-                "Cash flow · last 6 months",
-                modifier = Modifier.padding(
-                    start = Spacing.md, end = Spacing.md,
-                    top = Spacing.md, bottom = Spacing.xs,
-                ),
-            )
-            com.endgamefinance.ui.components.CashFlowChart(months = cashFlow)
-            Spacer(modifier = Modifier.padding(bottom = Spacing.sm))
+            HeaderStrip("Cash flow · last 6 months")
+            Column(modifier = Modifier.background(washBrush())) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                com.endgamefinance.ui.components.CashFlowChart(months = cashFlow)
+                Spacer(modifier = Modifier.padding(bottom = Spacing.sm))
+            }
         }
     }
 }
@@ -328,32 +337,18 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
         border = panelBorder(),
     ) {
         Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = Spacing.md, end = Spacing.md,
-                        top = Spacing.md, bottom = Spacing.xs,
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PanelTitle("Budget · ${budgetSummary.monthLabel}")
-                if (budgetSummary.allocatedTotal > 0) {
-                    Text(
-                        text = androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(
-                                androidx.compose.ui.text.SpanStyle(color = moneyColors.loss),
-                            ) { append(Money.format(budgetSummary.spentTotal)) }
-                            append(" of ${Money.format(budgetSummary.allocatedTotal)}")
-                        },
-                        style = MaterialTheme.typography.labelMedium.tabular,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            HeaderStrip(
+                "Budget · ${budgetSummary.monthLabel}",
+                trailing = if (budgetSummary.allocatedTotal > 0) {
+                    "${Money.format(budgetSummary.spentTotal)} of " +
+                        Money.format(budgetSummary.allocatedTotal)
+                } else null,
+            )
+            Column(modifier = Modifier.background(washBrush())) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                com.endgamefinance.ui.components.SpendDonutChart(slices = budgetSummary.slices)
+                Spacer(modifier = Modifier.height(Spacing.sm))
             }
-            com.endgamefinance.ui.components.SpendDonutChart(slices = budgetSummary.slices)
-            Spacer(modifier = Modifier.height(Spacing.sm))
         }
     }
 }
@@ -371,11 +366,13 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
         ),
         border = panelBorder(),
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            PanelTitle(
-                "Top spending this month",
-                modifier = Modifier.padding(bottom = Spacing.sm),
-            )
+        Column {
+            HeaderStrip("Top spending this month")
+            Column(
+                modifier = Modifier
+                    .background(washBrush())
+                    .padding(Spacing.md),
+            ) {
             topCategories.forEach { category ->
                 Row(
                     modifier = Modifier
@@ -422,6 +419,7 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
                     )
                 }
             }
+            }
         }
     }
 }
@@ -442,19 +440,13 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
         ),
         border = panelBorder(),
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+        Column {
+            HeaderStrip("Calendar · ${ui.monthLabel}", trailing = "tap to open")
+            Column(
+                modifier = Modifier
+                    .background(washBrush())
+                    .padding(Spacing.md),
             ) {
-                PanelTitle("Calendar · ${ui.monthLabel}")
-                Text(
-                    "Tap to open",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
                     Text(
@@ -514,6 +506,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
                     }
                 }
             }
+            }
         }
     }
 }
@@ -536,34 +529,20 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
         // The hero panel gets the accent frame
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
     ) {
+        Column {
+        HeaderStrip("Safe to spend")
         Column(
             // Full-plate wash: never fades to nothing, so collapsed and
             // expanded states read the same
-            modifier = Modifier.background(
-                androidx.compose.ui.graphics.Brush.verticalGradient(
-                    0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                    1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                ),
-            ),
-        ) {
-        Row {
-        Column(
             modifier = Modifier
-                .weight(1f)
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                    ),
+                )
                 .padding(Spacing.md),
         ) {
-            Row {
-                Text(
-                    text = "SAFE TO SPEND",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = " //",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
             Text(
                 text = Money.format(sts.amountCents),
                 style = MaterialTheme.typography.displaySmall.tabular,
@@ -635,19 +614,6 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                 )
             }
         }
-        // Panel-edge micro caption, straight off THE SIGIL screen
-        com.endgamefinance.ui.components.VerticalMicroText(
-            "ENDGAME // TAU CETI LEDGER",
-            modifier = Modifier
-                .align(Alignment.CenterVertically)
-                .padding(end = Spacing.xs),
-        )
-        }
-        // Dither transition along the plate's bottom edge
-        com.endgamefinance.ui.components.DitherStrip(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-            modifier = Modifier.fillMaxWidth(),
-        )
         }
     }
 }
