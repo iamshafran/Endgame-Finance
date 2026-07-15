@@ -17,8 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -494,6 +498,35 @@ private fun ReminderRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            // Leading icon rail, matching ledger rows: category icon for
+            // bills/income, transfer glyph for repayments/transfers.
+            val isTransferReminder = row.toAccountName != null
+            Box(
+                modifier = Modifier
+                    .padding(end = Spacing.sm)
+                    .size(40.dp)
+                    .background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = when {
+                        isTransferReminder -> Icons.Filled.SwapHoriz
+                        else -> com.endgamefinance.ui.components.IconCatalog
+                            .get(row.categoryIcon) ?: Icons.Filled.Category
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        isTransferReminder -> MaterialTheme.colorScheme.onSurfaceVariant
+                        row.categoryIcon == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        row.isIncome -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.tertiary
+                    },
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.reminder.name, style = MaterialTheme.typography.bodyLarge)
                 val subtitle = buildString {

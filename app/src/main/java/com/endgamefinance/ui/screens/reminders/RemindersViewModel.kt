@@ -36,6 +36,8 @@ data class ReminderUi(
     /** Destination account name for transfer/repayment reminders. */
     val toAccountName: String?,
     val categoryName: String?,
+    /** IconCatalog key of the linked category, for the row's leading icon. */
+    val categoryIcon: String? = null,
     /** True when the linked category is income-type — posts as income. */
     val isIncome: Boolean,
     /** Due today or earlier — actionable now. */
@@ -340,6 +342,7 @@ class RemindersViewModel(
                     accountName = accountNames[r.accountId] ?: "(archived account)",
                     toAccountName = r.toAccountId?.let { accountNames[it] ?: "(archived account)" },
                     categoryName = category?.name,
+                    categoryIcon = category?.icon,
                     isIncome = r.toAccountId == null &&
                         category?.type == com.endgamefinance.data.db.entity.Category.TYPE_INCOME,
                     isDue = r.nextDueDate < endOfToday,

@@ -153,7 +153,13 @@ fun CategoryPickerSheet(
                     .entries
                     .sortedBy { it.key.second.lowercase() }
                     .forEach { (groupKey, members) ->
-                        item(span = { GridItemSpan(maxLineSpan) }, key = "group_${groupKey.first}") {
+                        // Key scoped by section: a group holding BOTH types (seen
+                        // in pre-v6 Bluecoins imports) appears under Expense AND
+                        // Income, and bare group ids would collide → crash.
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            key = "${groupTitle}_group_${groupKey.first}",
+                        ) {
                             Text(
                                 groupKey.second,
                                 style = MaterialTheme.typography.labelLarge,
