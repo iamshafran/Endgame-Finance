@@ -202,6 +202,25 @@ fun NetWorthChart(
                 drawPath(path, color, style = Stroke(width = width))
             }
 
+            // Gradient area fill under the net-worth line — the loadout-screen glow
+            val fillPath = Path()
+            snapshots.forEachIndexed { index, snapshot ->
+                val px = x(snapshot.snapshotDate)
+                val py = y(snapshot.netWorth)
+                if (index == 0) fillPath.moveTo(px, py) else fillPath.lineTo(px, py)
+            }
+            fillPath.lineTo(x(maxDate), h)
+            fillPath.lineTo(x(minDate), h)
+            fillPath.close()
+            drawPath(
+                fillPath,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to netColor.copy(alpha = 0.28f),
+                    1f to Color.Transparent,
+                    endY = h,
+                ),
+            )
+
             // Supporting series first so the net-worth line stays on top
             drawSeries(assetColor.copy(alpha = 0.85f), 1.5.dp.toPx()) { it.totalAssets }
             drawSeries(liabilityColor.copy(alpha = 0.85f), 1.5.dp.toPx()) { it.totalLiabilities }
@@ -273,7 +292,7 @@ private fun SeriesDot(color: Color, label: String) {
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .background(color, CircleShape),
+                .background(color, androidx.compose.ui.graphics.RectangleShape),
         )
         Text(
             " $label",

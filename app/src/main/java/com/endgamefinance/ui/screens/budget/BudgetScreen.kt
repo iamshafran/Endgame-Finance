@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.ui.components.IconCatalog
 import com.endgamefinance.ui.theme.LocalMoneyColors
@@ -352,13 +354,18 @@ private fun BudgetGroupHeader(
             )
         }
         if (group.available > 0) {
+            // Spec-sheet bar: thin, square-capped, gapless (loadout-screen style)
             LinearProgressIndicator(
                 progress = { (group.spent.toFloat() / group.available).coerceIn(0f, 1f) },
                 color = if (group.overBudget) moneyColors.loss
                 else MaterialTheme.colorScheme.primary,
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt,
+                gapSize = 0.dp,
+                drawStopIndicator = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Spacing.xs),
+                    .padding(top = Spacing.xs)
+                    .height(3.dp),
             )
         }
     }
@@ -422,9 +429,13 @@ private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit, indent: Boolean = f
             LinearProgressIndicator(
                 progress = { (row.spent.toFloat() / row.available).coerceIn(0f, 1f) },
                 color = if (row.overBudget) moneyColors.loss else MaterialTheme.colorScheme.primary,
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt,
+                gapSize = 0.dp,
+                drawStopIndicator = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Spacing.xs),
+                    .padding(top = Spacing.xs)
+                    .height(3.dp),
             )
         }
         row.pacing?.let {

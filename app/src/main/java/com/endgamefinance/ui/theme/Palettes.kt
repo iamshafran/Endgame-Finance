@@ -46,8 +46,8 @@ fun moneyColorsFor(palette: ThemePalette, dark: Boolean): MoneyColors = when (pa
     // Marathoner: the signature lime IS the palette's green — income wears it;
     // no red, so expenses use a complementary warm red. Transfers: cool blue.
     ThemePalette.MARATHON ->
-        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFFF6B5A), Color(0xFF8AD5FF))
-        else MoneyColors(Color(0xFF4C6600), Color(0xFFB3261E), Color(0xFF00668A))
+        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFFF5A67), Color(0xFF44D9FF))
+        else MoneyColors(Color(0xFF4C6600), Color(0xFFB3261E), Color(0xFF006B85))
     // Golden Rush: neither green nor red — warm complementary shades; the
     // metallic gold marks transfers.
     ThemePalette.GOLDEN_RUSH ->
@@ -155,34 +155,36 @@ private val CyberpunkLight = lightColorScheme(
 // Racing-inspired lime green (#C0FE04) on near-black charcoal, with
 // cool blue + pale-lime supporting accents.
 
+// Tuned to the game's actual loadout screens (owner refs 2026-07-15):
+// acid lime + hot magenta + electric cyan on deep blue-black, not sage.
 private val MarathonDark = darkColorScheme(
-    primary = Color(0xFFC0FE04), onPrimary = Color(0xFF1A2600),
-    primaryContainer = Color(0xFF2E3D00), onPrimaryContainer = Color(0xFFD4FF5B),
-    secondary = Color(0xFFC5D0A8), onSecondary = Color(0xFF2E3400),
-    secondaryContainer = Color(0xFF444B29), onSecondaryContainer = Color(0xFFE1EDC2),
-    tertiary = Color(0xFF8AD5FF), onTertiary = Color(0xFF00344A),
-    tertiaryContainer = Color(0xFF004C68), onTertiaryContainer = Color(0xFFC7E7FF),
+    primary = Color(0xFFC0FE04), onPrimary = Color(0xFF141A00),
+    primaryContainer = Color(0xFF303D00), onPrimaryContainer = Color(0xFFD4FF5B),
+    secondary = Color(0xFFF04FD4), onSecondary = Color(0xFF3A0032),
+    secondaryContainer = Color(0xFF52004A), onSecondaryContainer = Color(0xFFFFB8EE),
+    tertiary = Color(0xFF44D9FF), onTertiary = Color(0xFF00303D),
+    tertiaryContainer = Color(0xFF004C60), onTertiaryContainer = Color(0xFFB8EEFF),
     error = Color(0xFFFF5449), onError = Color(0xFF000000),
     errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF0D0F0A), onBackground = Color(0xFFE4E5DC),
-    surface = Color(0xFF0D0F0A), onSurface = Color(0xFFE4E5DC),
-    surfaceVariant = Color(0xFF45483C), onSurfaceVariant = Color(0xFFC5C8B8),
-    outline = Color(0xFF8E9082), outlineVariant = Color(0xFF45483C), surfaceTint = Color(0xFFC0FE04),
-    surfaceDim = Color(0xFF0D0F0A), surfaceBright = Color(0xFF33352C),
-    surfaceContainerLowest = Color(0xFF070903), surfaceContainerLow = Color(0xFF161A10),
-    surfaceContainer = Color(0xFF1A1E13), surfaceContainerHigh = Color(0xFF24281C),
-    surfaceContainerHighest = Color(0xFF2F3326),
-    inverseSurface = Color(0xFFE4E5DC), inverseOnSurface = Color(0xFF2D3025),
+    background = Color(0xFF0A0C10), onBackground = Color(0xFFE2E4E8),
+    surface = Color(0xFF0A0C10), onSurface = Color(0xFFE2E4E8),
+    surfaceVariant = Color(0xFF3C4048), onSurfaceVariant = Color(0xFFBCC2CC),
+    outline = Color(0xFF848B96), outlineVariant = Color(0xFF33373E), surfaceTint = Color(0xFFC0FE04),
+    surfaceDim = Color(0xFF0A0C10), surfaceBright = Color(0xFF2E323A),
+    surfaceContainerLowest = Color(0xFF05070A), surfaceContainerLow = Color(0xFF12151A),
+    surfaceContainer = Color(0xFF171A20), surfaceContainerHigh = Color(0xFF1F232B),
+    surfaceContainerHighest = Color(0xFF292E37),
+    inverseSurface = Color(0xFFE2E4E8), inverseOnSurface = Color(0xFF2B2E33),
     inversePrimary = Color(0xFF3F5300), scrim = Color(0xFF000000),
 )
 
 private val MarathonLight = lightColorScheme(
     primary = Color(0xFF4C6600), onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFD3FF6B), onPrimaryContainer = Color(0xFF141F00),
-    secondary = Color(0xFF5A6146), onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFDEE6C2), onSecondaryContainer = Color(0xFF181E08),
-    tertiary = Color(0xFF00668A), onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFC3E8FF), onTertiaryContainer = Color(0xFF001E2E),
+    secondary = Color(0xFF9C0084), onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFD7F0), onSecondaryContainer = Color(0xFF36002C),
+    tertiary = Color(0xFF006B85), onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFB8EAFF), onTertiaryContainer = Color(0xFF001F29),
     error = Color(0xFFBA1A1A), onError = Color(0xFFFFFFFF),
     errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002),
     background = Color(0xFFFBFCF3), onBackground = Color(0xFF1A1D14),

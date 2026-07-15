@@ -217,10 +217,10 @@ private fun DayCell(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .background(color, RoundedCornerShape(8.dp))
+            .background(color, androidx.compose.ui.graphics.RectangleShape)
             .then(
                 if (isSelected) Modifier.border(
-                    2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp),
+                    2.dp, MaterialTheme.colorScheme.primary, androidx.compose.ui.graphics.RectangleShape,
                 ) else Modifier,
             )
             .combinedClickable(
@@ -242,14 +242,14 @@ private fun DayCell(
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(moneyColors.loss, CircleShape),
+                                .background(moneyColors.loss, androidx.compose.ui.graphics.RectangleShape),
                         )
                     }
                     if (day.upcomingBills.isNotEmpty()) {
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
-                                .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                                .background(MaterialTheme.colorScheme.tertiary, androidx.compose.ui.graphics.RectangleShape),
                         )
                     }
                 }
@@ -264,7 +264,7 @@ private fun LegendSwatch(color: Color, label: String) {
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .background(color, RoundedCornerShape(3.dp)),
+                .background(color, androidx.compose.ui.graphics.RectangleShape),
         )
         Text(
             " $label",
@@ -280,7 +280,7 @@ private fun LegendDot(color: Color, label: String) {
         Box(
             modifier = Modifier
                 .size(6.dp)
-                .background(color, CircleShape),
+                .background(color, androidx.compose.ui.graphics.RectangleShape),
         )
         Text(
             " $label",

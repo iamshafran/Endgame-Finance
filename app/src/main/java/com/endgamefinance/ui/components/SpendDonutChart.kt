@@ -165,7 +165,10 @@ fun SpendDonutChart(
                     Box(
                         modifier = Modifier
                             .size(10.dp)
-                            .background(colorFor(index), CircleShape),
+                            .background(
+                                colorFor(index),
+                                androidx.compose.ui.graphics.RectangleShape,
+                            ),
                     )
                     Text(
                         text = slice.label,

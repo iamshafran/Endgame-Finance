@@ -1,34 +1,19 @@
 package com.endgamefinance.ui.theme
 
-import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Tactical/HUD shape language (owner direction 2026-07-15, Marathon/CP2077
- * inspiration board): cut corners instead of round ones, asymmetric on panel
- * surfaces so cards read as clipped tactical plates, not soft bubbles.
- * Applied through MaterialTheme.shapes, so every Card, sheet, menu, and
- * text field in the app picks it up without per-screen changes.
+ * Marathon-style shape language (owner's reference set, 2026-07-15): HARD
+ * RECTANGLES, no rounding, no cut corners. Every panel, sheet, menu, chip,
+ * and field reads as a flat slotted plate straight off the loadout screen.
+ * Applied through MaterialTheme.shapes so the whole app picks it up.
  */
 val EndgameShapes = Shapes(
-    // Text fields, menus, small chips
-    extraSmall = CutCornerShape(4.dp),
-    // Chips, small buttons
-    small = CutCornerShape(6.dp),
-    // Cards — the signature asymmetric notch
-    medium = CutCornerShape(
-        topStart = 14.dp, topEnd = 4.dp,
-        bottomEnd = 14.dp, bottomStart = 4.dp,
-    ),
-    // FABs, large components
-    large = CutCornerShape(
-        topStart = 16.dp, topEnd = 4.dp,
-        bottomEnd = 16.dp, bottomStart = 4.dp,
-    ),
-    // Bottom sheets: hard cut on one shoulder only
-    extraLarge = CutCornerShape(
-        topStart = 24.dp, topEnd = 6.dp,
-        bottomEnd = 0.dp, bottomStart = 0.dp,
-    ),
+    extraSmall = RoundedCornerShape(0.dp),
+    small = RoundedCornerShape(0.dp),
+    medium = RoundedCornerShape(0.dp),
+    large = RoundedCornerShape(0.dp),
+    extraLarge = RoundedCornerShape(0.dp),
 )

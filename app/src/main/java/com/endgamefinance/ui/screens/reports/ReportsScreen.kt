@@ -178,7 +178,7 @@ private fun RangeTab(viewModel: ReportsViewModel) {
                         .height(6.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(3.dp),
+                            androidx.compose.ui.graphics.RectangleShape,
                         ),
                 ) {
                     Box(
@@ -187,7 +187,7 @@ private fun RangeTab(viewModel: ReportsViewModel) {
                             .height(6.dp)
                             .background(
                                 MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(3.dp),
+                                androidx.compose.ui.graphics.RectangleShape,
                             ),
                     )
                 }

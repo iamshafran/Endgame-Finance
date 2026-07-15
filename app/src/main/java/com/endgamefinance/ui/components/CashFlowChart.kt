@@ -171,7 +171,7 @@ private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) 
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .size(8.dp)
-                .background(color, CircleShape),
+                .background(color, androidx.compose.ui.graphics.RectangleShape),
         )
         Text(
             " $label",

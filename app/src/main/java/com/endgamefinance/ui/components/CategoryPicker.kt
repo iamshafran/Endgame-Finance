@@ -213,7 +213,7 @@ private fun CategoryTile(
                 .background(
                     if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                    CircleShape,
+                    androidx.compose.ui.graphics.RectangleShape,
                 ),
             contentAlignment = Alignment.Center,
         ) {

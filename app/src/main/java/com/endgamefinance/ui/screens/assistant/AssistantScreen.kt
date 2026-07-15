@@ -221,7 +221,7 @@ private fun EmptyStateIntro(onExample: (String) -> Unit) {
         EXAMPLES.forEach { ex ->
             Surface(
                 onClick = { onExample(ex) },
-                shape = RoundedCornerShape(12.dp),
+                shape = androidx.compose.ui.graphics.RectangleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -240,7 +240,7 @@ private fun EmptyStateIntro(onExample: (String) -> Unit) {
 private fun UserBubble(text: String) {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Surface(
-            shape = RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp),
+            shape = androidx.compose.ui.graphics.RectangleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier.widthIn(max = 320.dp),
         ) {
@@ -312,7 +312,7 @@ private fun AnswerCard(answer: QueryEngine.Answer) {
                                         .height(14.dp)
                                         .background(
                                             MaterialTheme.colorScheme.primary,
-                                            RoundedCornerShape(4.dp),
+                                            androidx.compose.ui.graphics.RectangleShape,
                                         ),
                                 )
                                 Text(

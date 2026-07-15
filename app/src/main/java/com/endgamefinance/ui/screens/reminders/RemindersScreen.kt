@@ -515,7 +515,7 @@ internal fun ReminderRow(
                     .size(40.dp)
                     .background(
                         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        CircleShape,
+                        androidx.compose.ui.graphics.RectangleShape,
                     ),
                 contentAlignment = Alignment.Center,
             ) {

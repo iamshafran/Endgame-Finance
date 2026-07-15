@@ -235,6 +235,19 @@ fun DashboardScreen(
 private fun panelBorder() =
     BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
 
+/** Panel heading in the refs' voice: uppercase, terminated with an accent `//`. */
+@Composable
+private fun PanelTitle(text: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        Text(text.uppercase(), style = MaterialTheme.typography.titleMedium)
+        Text(
+            " //",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+        )
+    }
+}
+
 @Composable
 private fun NetWorthCard(
     netWorth: Long,
@@ -254,7 +267,7 @@ private fun NetWorthCard(
                     .padding(Spacing.md),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Net worth", style = MaterialTheme.typography.titleMedium)
+                PanelTitle("Net worth")
                 Text(
                     Money.format(netWorth),
                     style = MaterialTheme.typography.titleMedium,
@@ -275,9 +288,8 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
         border = panelBorder(),
     ) {
         Column {
-            Text(
+            PanelTitle(
                 "Cash flow · last 6 months",
-                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(
                     start = Spacing.md, end = Spacing.md,
                     top = Spacing.md, bottom = Spacing.xs,
@@ -309,10 +321,7 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Budget · ${budgetSummary.monthLabel}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                PanelTitle("Budget · ${budgetSummary.monthLabel}")
                 if (budgetSummary.allocatedTotal > 0) {
                     Text(
                         text = androidx.compose.ui.text.buildAnnotatedString {
@@ -342,9 +351,8 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
         border = panelBorder(),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
+            PanelTitle(
                 "Top spending this month",
-                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = Spacing.sm),
             )
             topCategories.forEach { category ->
@@ -381,7 +389,7 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
                         .height(5.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(3.dp),
+                            androidx.compose.ui.graphics.RectangleShape,
                         ),
                 ) {
                     Box(
@@ -390,7 +398,7 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
                             .height(5.dp)
                             .background(
                                 MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(3.dp),
+                                androidx.compose.ui.graphics.RectangleShape,
                             ),
                     )
                 }
@@ -417,10 +425,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Calendar · ${ui.monthLabel}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                PanelTitle("Calendar · ${ui.monthLabel}")
                 Text(
                     "Tap to open",
                     style = MaterialTheme.typography.labelMedium,
@@ -455,7 +460,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
                                         3 -> moneyColors.loss.copy(alpha = 0.35f)
                                         else -> androidx.compose.ui.graphics.Color.Transparent
                                     },
-                                    RoundedCornerShape(6.dp),
+                                    androidx.compose.ui.graphics.RectangleShape,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -474,7 +479,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
                                         Box(
                                             modifier = Modifier
                                                 .size(4.dp)
-                                                .background(tertiary, CircleShape),
+                                                .background(tertiary, androidx.compose.ui.graphics.RectangleShape),
                                         )
                                     }
                                 }
@@ -495,28 +500,45 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
     val moneyColors = LocalMoneyColors.current
     var expanded by remember { mutableStateOf(false) }
 
-    // Hero treatment: the app's most important number owns the strongest surface
+    // Hero treatment, loadout-screen style: dark plate, accent gradient wash,
+    // the number itself wears the palette's acid primary
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .clickable { expanded = !expanded },
         colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         // The hero panel gets the accent frame
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
-                text = "Safe to spend",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+        Column(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        1f to androidx.compose.ui.graphics.Color.Transparent,
+                    ),
+                )
+                .padding(Spacing.md),
+        ) {
+            Row {
+                Text(
+                    text = "SAFE TO SPEND",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = " //",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Text(
                 text = Money.format(sts.amountCents),
                 style = MaterialTheme.typography.displaySmall.tabular,
-                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.error,
             )
             Text(
@@ -525,7 +547,7 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(it))
                 } ?: "over the next 30 days (no income scheduled)",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             if (expanded) {
