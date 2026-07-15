@@ -62,6 +62,55 @@ fun moneyColorsFor(palette: ThemePalette, dark: Boolean): MoneyColors = when (pa
         else MoneyColors(Color(0xFF1A1A1A), Color(0xFF8A8A8A), Color(0xFF4E4E4E))
 }
 
+/**
+ * Six vibrant widget accents per palette (owner rule 2026-07-15: every
+ * dashboard widget wears a different color — acid green, cyan, magenta,
+ * blue, yellow, orange in the Marathoner mood; each palette keeps its own
+ * family). Index order is stable: widgets map to positions, not hues.
+ */
+fun widgetAccentsFor(palette: ThemePalette, dark: Boolean): List<Color> = when (palette) {
+    ThemePalette.DEFAULT ->
+        if (dark) listOf(
+            Color(0xFF88D6BE), Color(0xFFE5C36C), Color(0xFF7FC8E8),
+            Color(0xFFB2CCC0), Color(0xFFD9A7E0), Color(0xFFE8A87F),
+        ) else listOf(
+            Color(0xFF16624F), Color(0xFF8A6C1F), Color(0xFF00668A),
+            Color(0xFF4B635A), Color(0xFF7B4E85), Color(0xFF9A5B2E),
+        )
+    ThemePalette.CYBERPUNK ->
+        if (dark) listOf(
+            Color(0xFFFCEE0A), Color(0xFF00E5FF), Color(0xFFFF3B6E),
+            Color(0xFF00FF9F), Color(0xFF7B61FF), Color(0xFFFF8A3C),
+        ) else listOf(
+            Color(0xFF6B6500), Color(0xFF00697A), Color(0xFFB00042),
+            Color(0xFF00695C), Color(0xFF5B45C0), Color(0xFFA85400),
+        )
+    ThemePalette.MARATHON ->
+        if (dark) listOf(
+            Color(0xFFC0FE04), Color(0xFF44D9FF), Color(0xFFF04FD4),
+            Color(0xFF5B8CFF), Color(0xFFFFE45C), Color(0xFFFF9E4A),
+        ) else listOf(
+            Color(0xFF4C6600), Color(0xFF006B85), Color(0xFF9C0084),
+            Color(0xFF2B54C8), Color(0xFF8A6C00), Color(0xFFA85400),
+        )
+    ThemePalette.GOLDEN_RUSH ->
+        if (dark) listOf(
+            Color(0xFFE8C15A), Color(0xFFD4B483), Color(0xFFE6C97A),
+            Color(0xFFC9A227), Color(0xFFB08D57), Color(0xFFE0A458),
+        ) else listOf(
+            Color(0xFF6F5A00), Color(0xFF6B5D3F), Color(0xFF7E5A00),
+            Color(0xFF8A6C1F), Color(0xFF7A5C2E), Color(0xFF9A6A1F),
+        )
+    ThemePalette.MONOCHROME ->
+        if (dark) listOf(
+            Color(0xFFF0F0F0), Color(0xFFCFCFCF), Color(0xFFB0B0B0),
+            Color(0xFF929292), Color(0xFFDDDDDD), Color(0xFFA4A4A4),
+        ) else listOf(
+            Color(0xFF1A1A1A), Color(0xFF3C3C3C), Color(0xFF5E5E5E),
+            Color(0xFF7A7A7A), Color(0xFF2B2B2B), Color(0xFF4A4A4A),
+        )
+}
+
 // ---------------------------------------------------------------- Default
 // Reuses the evergreen + gold tokens defined in Color.kt.
 

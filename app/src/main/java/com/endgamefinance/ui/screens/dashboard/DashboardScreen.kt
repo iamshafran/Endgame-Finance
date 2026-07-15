@@ -109,18 +109,27 @@ fun DashboardScreen(
         val topCategories by viewModel.topCategories.collectAsState()
         val miniCalendar by viewModel.miniCalendar.collectAsState()
 
-        // Widgets render in the user's chosen order; hidden ones are skipped
+        // Widgets render in the user's chosen order; hidden ones are skipped.
+        // Every widget wears its own accent (strip + wash + frame).
+        val accents = com.endgamefinance.ui.theme.LocalWidgetAccents.current
+        fun accentFor(key: String) =
+            accents[DashboardPrefs.ALL.indexOf(key).coerceIn(0, accents.lastIndex)]
         widgetOrder.filterNot { it in hiddenWidgets }.forEach { key ->
+            val accent = accentFor(key)
             when (key) {
-                DashboardPrefs.SAFE_TO_SPEND -> state.safeToSpend?.let { SafeToSpendCard(it) }
-                DashboardPrefs.NET_WORTH -> NetWorthCard(state.netWorth, snapshots)
+                DashboardPrefs.SAFE_TO_SPEND ->
+                    state.safeToSpend?.let { SafeToSpendCard(it, accent) }
+                DashboardPrefs.NET_WORTH -> NetWorthCard(state.netWorth, snapshots, accent)
                 DashboardPrefs.CALENDAR ->
-                    MiniCalendarCard(miniCalendar, onOpenCalendar)
-                DashboardPrefs.CASH_FLOW -> if (cashFlow.isNotEmpty()) CashFlowCard(cashFlow)
+                    MiniCalendarCard(miniCalendar, onOpenCalendar, accent)
+                DashboardPrefs.CASH_FLOW ->
+                    if (cashFlow.isNotEmpty()) CashFlowCard(cashFlow, accent)
                 DashboardPrefs.BUDGET ->
-                    if (budgetSummary.slices.isNotEmpty()) BudgetSummaryCard(budgetSummary)
+                    if (budgetSummary.slices.isNotEmpty()) {
+                        BudgetSummaryCard(budgetSummary, accent)
+                    }
                 DashboardPrefs.TOP_SPENDING ->
-                    if (topCategories.isNotEmpty()) TopSpendingCard(topCategories)
+                    if (topCategories.isNotEmpty()) TopSpendingCard(topCategories, accent)
             }
         }
 
@@ -235,19 +244,21 @@ fun DashboardScreen(
     }
 }
 
-/** Thin outline that makes cards read as tactical panels, not soft bubbles. */
-@Composable
-private fun panelBorder() =
-    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+/** Thin accent outline so each panel's frame matches its strip. */
+private fun panelBorder(accent: androidx.compose.ui.graphics.Color) =
+    BorderStroke(1.dp, accent.copy(alpha = 0.45f))
 
-/** TWIN-TAP-style header: solid primary strip, black uppercase title. */
+/** TWIN-TAP-style header: solid accent strip, black uppercase title. */
 @Composable
-private fun HeaderStrip(title: String, trailing: String? = null) {
-    val strip = MaterialTheme.colorScheme.primary
+private fun HeaderStrip(
+    title: String,
+    accent: androidx.compose.ui.graphics.Color,
+    trailing: String? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(strip)
+            .background(accent)
             .padding(horizontal = Spacing.md, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -255,29 +266,30 @@ private fun HeaderStrip(title: String, trailing: String? = null) {
         Text(
             title.uppercase(),
             style = MaterialTheme.typography.titleMedium,
-            color = com.endgamefinance.ui.components.onChipColor(strip),
+            color = com.endgamefinance.ui.components.onChipColor(accent),
         )
         if (trailing != null) {
             Text(
                 trailing,
                 style = MaterialTheme.typography.titleMedium.tabular,
-                color = com.endgamefinance.ui.components.onChipColor(strip),
+                color = com.endgamefinance.ui.components.onChipColor(accent),
             )
         }
     }
 }
 
 /** Subtle accent wash for widget bodies. */
-@Composable
-private fun washBrush() = androidx.compose.ui.graphics.Brush.verticalGradient(
-    0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-    1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
-)
+private fun washBrush(accent: androidx.compose.ui.graphics.Color) =
+    androidx.compose.ui.graphics.Brush.verticalGradient(
+        0f to accent.copy(alpha = 0.10f),
+        1f to accent.copy(alpha = 0.02f),
+    )
 
 @Composable
 private fun NetWorthCard(
     netWorth: Long,
     snapshots: List<com.endgamefinance.data.db.entity.NetWorthSnapshot>,
+    accent: androidx.compose.ui.graphics.Color,
 ) {
     val moneyColors = LocalMoneyColors.current
     Card(
@@ -288,11 +300,11 @@ private fun NetWorthCard(
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = panelBorder(),
+        border = panelBorder(accent),
     ) {
         Column {
-            HeaderStrip("Net worth", Money.format(netWorth))
-            Column(modifier = Modifier.background(washBrush())) {
+            HeaderStrip("Net worth", accent, Money.format(netWorth))
+            Column(modifier = Modifier.background(washBrush(accent))) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 NetWorthChart(snapshots = snapshots)
             }
@@ -301,7 +313,10 @@ private fun NetWorthCard(
 }
 
 @Composable
-private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCashFlow>) {
+private fun CashFlowCard(
+    cashFlow: List<com.endgamefinance.ui.components.MonthCashFlow>,
+    accent: androidx.compose.ui.graphics.Color,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -310,11 +325,11 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = panelBorder(),
+        border = panelBorder(accent),
     ) {
         Column {
-            HeaderStrip("Cash flow · last 6 months")
-            Column(modifier = Modifier.background(washBrush())) {
+            HeaderStrip("Cash flow · last 6 months", accent)
+            Column(modifier = Modifier.background(washBrush(accent))) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 com.endgamefinance.ui.components.CashFlowChart(months = cashFlow)
                 Spacer(modifier = Modifier.padding(bottom = Spacing.sm))
@@ -324,7 +339,10 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
 }
 
 @Composable
-private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
+private fun BudgetSummaryCard(
+    budgetSummary: BudgetSummaryUi,
+    accent: androidx.compose.ui.graphics.Color,
+) {
     val moneyColors = LocalMoneyColors.current
     Card(
         modifier = Modifier
@@ -334,17 +352,18 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = panelBorder(),
+        border = panelBorder(accent),
     ) {
         Column {
             HeaderStrip(
                 "Budget · ${budgetSummary.monthLabel}",
+                accent = accent,
                 trailing = if (budgetSummary.allocatedTotal > 0) {
                     "${Money.format(budgetSummary.spentTotal)} of " +
                         Money.format(budgetSummary.allocatedTotal)
                 } else null,
             )
-            Column(modifier = Modifier.background(washBrush())) {
+            Column(modifier = Modifier.background(washBrush(accent))) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 com.endgamefinance.ui.components.SpendDonutChart(slices = budgetSummary.slices)
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -354,7 +373,10 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
 }
 
 @Composable
-private fun TopSpendingCard(topCategories: List<TopCategory>) {
+private fun TopSpendingCard(
+    topCategories: List<TopCategory>,
+    accent: androidx.compose.ui.graphics.Color,
+) {
     val moneyColors = LocalMoneyColors.current
     Card(
         modifier = Modifier
@@ -364,13 +386,13 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = panelBorder(),
+        border = panelBorder(accent),
     ) {
         Column {
-            HeaderStrip("Top spending this month")
+            HeaderStrip("Top spending this month", accent)
             Column(
                 modifier = Modifier
-                    .background(washBrush())
+                    .background(washBrush(accent))
                     .padding(Spacing.md),
             ) {
             topCategories.forEach { category ->
@@ -426,7 +448,11 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
 
 /** Compact month grid: spend momentum tints + bill dots; opens the full calendar. */
 @Composable
-private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
+private fun MiniCalendarCard(
+    ui: MiniCalendarUi,
+    onOpenCalendar: () -> Unit,
+    accent: androidx.compose.ui.graphics.Color,
+) {
     val moneyColors = LocalMoneyColors.current
     if (ui.days.isEmpty()) return
     Card(
@@ -438,13 +464,13 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = panelBorder(),
+        border = panelBorder(accent),
     ) {
         Column {
-            HeaderStrip("Calendar · ${ui.monthLabel}", trailing = "tap to open")
+            HeaderStrip("Calendar · ${ui.monthLabel}", accent, trailing = "tap to open")
             Column(
                 modifier = Modifier
-                    .background(washBrush())
+                    .background(washBrush(accent))
                     .padding(Spacing.md),
             ) {
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -512,7 +538,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
 }
 
 @Composable
-private fun SafeToSpendCard(sts: SafeToSpend) {
+private fun SafeToSpendCard(sts: SafeToSpend, accent: androidx.compose.ui.graphics.Color) {
     val moneyColors = LocalMoneyColors.current
     var expanded by remember { mutableStateOf(false) }
 
@@ -527,18 +553,18 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         // The hero panel gets the accent frame
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+        border = panelBorder(accent),
     ) {
         Column {
-        HeaderStrip("Safe to spend")
+        HeaderStrip("Safe to spend", accent)
         Column(
             // Full-plate wash: never fades to nothing, so collapsed and
             // expanded states read the same
             modifier = Modifier
                 .background(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
-                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                        1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        0f to accent.copy(alpha = 0.22f),
+                        1f to accent.copy(alpha = 0.05f),
                     ),
                 )
                 .padding(Spacing.md),
@@ -546,7 +572,7 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
             Text(
                 text = Money.format(sts.amountCents),
                 style = MaterialTheme.typography.displaySmall.tabular,
-                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.primary
+                color = if (sts.amountCents >= 0) accent
                 else MaterialTheme.colorScheme.error,
             )
             Text(

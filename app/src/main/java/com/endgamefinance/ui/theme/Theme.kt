@@ -23,6 +23,11 @@ val LocalMoneyColors = staticCompositionLocalOf {
 val LocalMoneyFontFamily =
     staticCompositionLocalOf<androidx.compose.ui.text.font.FontFamily?> { null }
 
+/** Per-palette vibrant accents so each dashboard widget wears its own color. */
+val LocalWidgetAccents = staticCompositionLocalOf<List<Color>> {
+    listOf(GainLight, GoldTertiaryLight, LossLight, SageSecondaryLight, GainLight, LossLight)
+}
+
 @Composable
 fun EndgameTheme(
     palette: ThemePalette = ThemePalette.DEFAULT,
@@ -60,6 +65,7 @@ fun EndgameTheme(
     CompositionLocalProvider(
         LocalMoneyColors provides moneyColors,
         LocalMoneyFontFamily provides font.moneyFamily,
+        LocalWidgetAccents provides widgetAccentsFor(palette, effectiveDark),
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
