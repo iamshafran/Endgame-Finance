@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.foundation.layout.WindowInsets
@@ -98,6 +99,12 @@ fun EndgameApp() {
                         onClick = { navigateToTab(tab.route) },
                         icon = { TabIcon(tab.route) },
                         label = { Text(tab.label) },
+                        // Loadout-screen highlight: solid acid indicator, dark glyph
+                        colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primary,
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                        ),
                     )
                 }
             }

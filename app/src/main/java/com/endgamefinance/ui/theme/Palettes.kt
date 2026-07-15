@@ -45,9 +45,10 @@ fun moneyColorsFor(palette: ThemePalette, dark: Boolean): MoneyColors = when (pa
         else MoneyColors(Color(0xFF00695C), Color(0xFFB00042), Color(0xFF00697A))
     // Marathoner: the signature lime IS the palette's green — income wears it;
     // no red, so expenses use a complementary warm red. Transfers: cool blue.
+    // Expense red pinned by owner: #D70200
     ThemePalette.MARATHON ->
-        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFFF5A67), Color(0xFF44D9FF))
-        else MoneyColors(Color(0xFF4C6600), Color(0xFFB3261E), Color(0xFF006B85))
+        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFD70200), Color(0xFF44D9FF))
+        else MoneyColors(Color(0xFF4C6600), Color(0xFFD70200), Color(0xFF006B85))
     // Golden Rush: neither green nor red — warm complementary shades; the
     // metallic gold marks transfers.
     ThemePalette.GOLDEN_RUSH ->

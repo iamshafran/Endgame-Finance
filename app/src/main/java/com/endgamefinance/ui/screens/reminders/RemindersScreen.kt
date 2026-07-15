@@ -506,35 +506,23 @@ internal fun ReminderRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Leading icon rail, matching ledger rows: category icon for
-            // bills/income, transfer glyph for repayments/transfers.
+            // Leading icon tile, matching ledger rows: black glyph on the
+            // type color (income gain / expense loss / transfer electric)
             val isTransferReminder = row.toAccountName != null
-            Box(
-                modifier = Modifier
-                    .padding(end = Spacing.sm)
-                    .size(40.dp)
-                    .background(
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        androidx.compose.ui.graphics.RectangleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = when {
-                        isTransferReminder -> Icons.Filled.SwapHoriz
-                        else -> com.endgamefinance.ui.components.IconCatalog
-                            .get(row.categoryIcon) ?: Icons.Filled.Category
-                    },
-                    contentDescription = null,
-                    tint = when {
-                        isTransferReminder -> moneyColors.transfer
-                        row.categoryIcon == null -> MaterialTheme.colorScheme.onSurfaceVariant
-                        row.isIncome -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.tertiary
-                    },
-                    modifier = Modifier.size(22.dp),
-                )
+            val typeColor = when {
+                isTransferReminder -> moneyColors.transfer
+                row.isIncome -> moneyColors.gain
+                else -> moneyColors.loss
             }
+            com.endgamefinance.ui.components.CategoryIconTile(
+                icon = when {
+                    isTransferReminder -> Icons.Filled.SwapHoriz
+                    else -> com.endgamefinance.ui.components.IconCatalog
+                        .get(row.categoryIcon) ?: Icons.Filled.Category
+                },
+                background = typeColor,
+                modifier = Modifier.padding(end = Spacing.sm),
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.reminder.name, style = MaterialTheme.typography.bodyLarge)
                 val subtitle = buildString {
@@ -565,24 +553,25 @@ internal fun ReminderRow(
             }
             // Same semantic coloring as ledger rows: income green, expense red,
             // transfers neutral
-            val isTransfer = row.toAccountName != null
-            val amountColor = when {
-                isTransfer -> moneyColors.transfer
-                row.isIncome -> moneyColors.gain
-                else -> moneyColors.loss
+            val amount = row.reminder.amount
+            if (amount != null) {
+                val prefix = when {
+                    isTransferReminder -> ""
+                    row.isIncome -> "+"
+                    else -> "−"
+                }
+                // Flat price chip, black-market style
+                com.endgamefinance.ui.components.AmountChip(
+                    text = prefix + Money.format(amount),
+                    color = typeColor,
+                )
+            } else {
+                Text(
+                    text = "varies",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = typeColor,
+                )
             }
-            Text(
-                text = row.reminder.amount?.let {
-                    val prefix = when {
-                        isTransfer -> ""
-                        row.isIncome -> "+"
-                        else -> "−"
-                    }
-                    prefix + Money.format(it)
-                } ?: "varies",
-                style = MaterialTheme.typography.titleMedium,
-                color = amountColor,
-            )
         }
         if (onPost != null && onSkip != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

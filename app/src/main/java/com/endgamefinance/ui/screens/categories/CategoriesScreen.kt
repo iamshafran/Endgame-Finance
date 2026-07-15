@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.db.entity.Category
 import com.endgamefinance.data.db.entity.CategoryGroup
@@ -278,15 +279,14 @@ private fun CategoryRow(category: Category, onClick: () -> Unit) {
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = IconCatalog.get(category.icon) ?: Icons.Filled.Category,
-            contentDescription = null,
-            // Expense icons take the accent (tertiary); income takes primary
-            tint = when {
-                category.icon == null -> MaterialTheme.colorScheme.outline
-                category.type == Category.TYPE_INCOME -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.tertiary
-            },
+        // Black glyph on the type color: income = gain, expense = loss
+        val moneyColors = com.endgamefinance.ui.theme.LocalMoneyColors.current
+        com.endgamefinance.ui.components.CategoryIconTile(
+            icon = IconCatalog.get(category.icon) ?: Icons.Filled.Category,
+            background = if (category.type == Category.TYPE_INCOME) moneyColors.gain
+            else moneyColors.loss,
+            tileSize = 32.dp,
+            iconSize = 18.dp,
             modifier = Modifier.padding(end = Spacing.sm),
         )
         Text(

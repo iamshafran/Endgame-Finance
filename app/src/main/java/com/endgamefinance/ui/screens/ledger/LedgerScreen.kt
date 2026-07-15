@@ -846,11 +846,17 @@ fun TransactionRow(
     onLongClick: (() -> Unit)? = null,
 ) {
     val moneyColors = LocalMoneyColors.current
-    val (amountText, amountColor) = when (item.type) {
-        "income" -> "+${Money.format(item.totalAmount)}" to moneyColors.gain
-        "expense" -> "−${Money.format(item.totalAmount)}" to moneyColors.loss
-        // Transfers wear their own color, distinct from income AND expense
-        else -> Money.format(item.totalAmount) to moneyColors.transfer
+    // Type color drives the icon tile AND the amount chip (owner rule):
+    // income = gain green, expense = loss red, transfer = electric transfer
+    val typeColor = when (item.type) {
+        "income" -> moneyColors.gain
+        "transfer" -> moneyColors.transfer
+        else -> moneyColors.loss
+    }
+    val amountText = when (item.type) {
+        "income" -> "+${Money.format(item.totalAmount)}"
+        "expense" -> "−${Money.format(item.totalAmount)}"
+        else -> Money.format(item.totalAmount)
     }
     Row(
         modifier = Modifier
@@ -875,36 +881,22 @@ fun TransactionRow(
         // payee's initial when there's no category icon (Gmail-style)
         val hasIcon = item.type == "transfer" || item.splitCount > 1 ||
             IconCatalog.get(item.categoryIcon) != null
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                    androidx.compose.ui.graphics.RectangleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Income primary, expense tertiary, transfers their own color
-            val accent = when {
-                item.type == "transfer" -> moneyColors.transfer
-                item.type == "income" -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.tertiary
-            }
-            if (hasIcon) {
-                Icon(
-                    imageVector = leadingIcon,
-                    contentDescription = null,
-                    tint = if (item.type == "transfer" ||
-                        IconCatalog.get(item.categoryIcon) != null
-                    ) accent
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp),
-                )
-            } else {
+        if (hasIcon) {
+            com.endgamefinance.ui.components.CategoryIconTile(
+                icon = leadingIcon,
+                background = typeColor,
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(typeColor, androidx.compose.ui.graphics.RectangleShape),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
                     text = item.payee.trim().take(1).uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.titleMedium,
-                    color = accent,
+                    color = com.endgamefinance.ui.components.onChipColor(typeColor),
                 )
             }
         }
@@ -950,12 +942,10 @@ fun TransactionRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
+                // Flat price chip, black-market style
+                com.endgamefinance.ui.components.AmountChip(
                     text = amountText,
-                    style = MaterialTheme.typography.titleMedium.tabular.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                    ),
-                    color = amountColor,
+                    color = typeColor,
                 )
                 // Slot is always reserved so amounts stay column-aligned
                 Box(

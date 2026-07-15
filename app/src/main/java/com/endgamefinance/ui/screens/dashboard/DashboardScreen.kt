@@ -136,8 +136,9 @@ fun DashboardScreen(
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs)
                     .clickable(onClick = onOpenSettings),
                 colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
             ) {
                 Text(
                     text = if (lastBackup == 0L) {
@@ -147,7 +148,7 @@ fun DashboardScreen(
                         "It's been $days days since your last backup. Tap to back up now."
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.padding(Spacing.md),
                 )
             }
@@ -158,6 +159,10 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
             ) {
                 Text(
                     text = "${state.dueBillCount} bill${if (state.dueBillCount > 1) "s" else ""} " +
@@ -258,6 +263,10 @@ private fun NetWorthCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        // Flat plate — no M3 tonal tint; the border does the work
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         border = panelBorder(),
     ) {
         Column {
@@ -285,6 +294,10 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        // Flat plate — no M3 tonal tint; the border does the work
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         border = panelBorder(),
     ) {
         Column {
@@ -308,6 +321,10 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        // Flat plate — no M3 tonal tint; the border does the work
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         border = panelBorder(),
     ) {
         Column {
@@ -348,6 +365,10 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        // Flat plate — no M3 tonal tint; the border does the work
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         border = panelBorder(),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
@@ -364,15 +385,13 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = IconCatalog.get(category.icon)
-                                ?: Icons.Filled.Category,
-                            contentDescription = null,
-                            // Category icons take the accent role, not primary
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier
-                                .padding(end = Spacing.sm)
-                                .size(20.dp),
+                        // Black glyph on the expense color — owner's tile rule
+                        com.endgamefinance.ui.components.CategoryIconTile(
+                            icon = IconCatalog.get(category.icon) ?: Icons.Filled.Category,
+                            background = moneyColors.loss,
+                            tileSize = 26.dp,
+                            iconSize = 16.dp,
+                            modifier = Modifier.padding(end = Spacing.sm),
                         )
                         Text(category.displayName, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -417,6 +436,10 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .clickable(onClick = onOpenCalendar),
+        // Flat plate — no M3 tonal tint; the border does the work
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         border = panelBorder(),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
@@ -514,13 +537,19 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
     ) {
         Column(
+            // Full-plate wash: never fades to nothing, so collapsed and
+            // expanded states read the same
+            modifier = Modifier.background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                    1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                ),
+            ),
+        ) {
+        Row {
+        Column(
             modifier = Modifier
-                .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                        1f to androidx.compose.ui.graphics.Color.Transparent,
-                    ),
-                )
+                .weight(1f)
                 .padding(Spacing.md),
         ) {
             Row {
@@ -605,6 +634,20 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
             }
+        }
+        // Panel-edge micro caption, straight off THE SIGIL screen
+        com.endgamefinance.ui.components.VerticalMicroText(
+            "ENDGAME // TAU CETI LEDGER",
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .padding(end = Spacing.xs),
+        )
+        }
+        // Dither transition along the plate's bottom edge
+        com.endgamefinance.ui.components.DitherStrip(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            modifier = Modifier.fillMaxWidth(),
+        )
         }
     }
 }

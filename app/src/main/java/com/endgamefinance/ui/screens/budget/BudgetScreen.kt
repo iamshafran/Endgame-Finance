@@ -391,12 +391,12 @@ private fun BudgetRow(row: BudgetRowUi, onClick: () -> Unit, indent: Boolean = f
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = IconCatalog.get(row.icon) ?: Icons.Filled.Category,
-                    contentDescription = null,
-                    // Category icons take the accent role, not primary
-                    tint = if (row.icon != null) MaterialTheme.colorScheme.tertiary
-                    else MaterialTheme.colorScheme.outline,
+                // Budget rows are expense categories — black glyph on loss red
+                com.endgamefinance.ui.components.CategoryIconTile(
+                    icon = IconCatalog.get(row.icon) ?: Icons.Filled.Category,
+                    background = moneyColors.loss,
+                    tileSize = 32.dp,
+                    iconSize = 18.dp,
                     modifier = Modifier.padding(end = Spacing.sm),
                 )
                 Column {

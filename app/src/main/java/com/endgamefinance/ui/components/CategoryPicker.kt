@@ -1,6 +1,7 @@
 package com.endgamefinance.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -207,25 +208,29 @@ private fun CategoryTile(
             .clickable(onClick = onClick)
             .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
     ) {
+        // Black glyph on the type color: income = gain, expense = loss
+        val moneyColors = com.endgamefinance.ui.theme.LocalMoneyColors.current
+        val tileColor = if (item.type == Category.TYPE_INCOME) moneyColors.gain
+        else moneyColors.loss
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(
-                    if (selected) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                    androidx.compose.ui.graphics.RectangleShape,
+                .background(tileColor, androidx.compose.ui.graphics.RectangleShape)
+                .then(
+                    if (selected) {
+                        Modifier.border(
+                            2.dp,
+                            MaterialTheme.colorScheme.onSurface,
+                            androidx.compose.ui.graphics.RectangleShape,
+                        )
+                    } else Modifier,
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = IconCatalog.get(item.icon) ?: Icons.Filled.Category,
                 contentDescription = null,
-                // Expense icons take the accent (tertiary); income takes primary
-                tint = when {
-                    selected -> MaterialTheme.colorScheme.onPrimaryContainer
-                    item.type == Category.TYPE_INCOME -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.tertiary
-                },
+                tint = onChipColor(tileColor),
                 modifier = Modifier.size(24.dp),
             )
         }
