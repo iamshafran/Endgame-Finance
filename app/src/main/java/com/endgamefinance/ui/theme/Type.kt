@@ -34,13 +34,14 @@ fun endgameTypography(family: FontFamily): Typography = Typography(
         fontFamily = family, fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp, lineHeight = 32.sp,
     ),
+    // Tactical/HUD voice: titles and labels track wide, like panel headings
     titleLarge = TextStyle(
         fontFamily = family, fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp, lineHeight = 28.sp,
+        fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = 1.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = family, fontWeight = FontWeight.Medium,
-        fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp,
+        fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.8.sp,
     ),
     bodyLarge = TextStyle(
         fontFamily = family, fontWeight = FontWeight.Normal,
@@ -52,10 +53,10 @@ fun endgameTypography(family: FontFamily): Typography = Typography(
     ),
     labelLarge = TextStyle(
         fontFamily = family, fontWeight = FontWeight.Medium,
-        fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
+        fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 1.sp,
     ),
     labelMedium = TextStyle(
         fontFamily = family, fontWeight = FontWeight.Medium,
-        fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp,
+        fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.8.sp,
     ),
 )

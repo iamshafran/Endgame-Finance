@@ -64,6 +64,7 @@ fun EndgameTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = endgameTypography(font.family),
+            shapes = EndgameShapes,
             content = content,
         )
     }

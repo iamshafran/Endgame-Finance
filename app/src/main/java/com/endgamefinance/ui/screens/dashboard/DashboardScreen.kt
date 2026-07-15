@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.BorderStroke
 import com.endgamefinance.data.repo.SafeToSpend
 import com.endgamefinance.ui.components.NetWorthChart
 import com.endgamefinance.ui.theme.LocalMoneyColors
@@ -229,6 +230,11 @@ fun DashboardScreen(
     }
 }
 
+/** Thin outline that makes cards read as tactical panels, not soft bubbles. */
+@Composable
+private fun panelBorder() =
+    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+
 @Composable
 private fun NetWorthCard(
     netWorth: Long,
@@ -239,6 +245,7 @@ private fun NetWorthCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        border = panelBorder(),
     ) {
         Column {
             Row(
@@ -265,6 +272,7 @@ private fun CashFlowCard(cashFlow: List<com.endgamefinance.ui.components.MonthCa
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        border = panelBorder(),
     ) {
         Column {
             Text(
@@ -288,6 +296,7 @@ private fun BudgetSummaryCard(budgetSummary: BudgetSummaryUi) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        border = panelBorder(),
     ) {
         Column {
             Row(
@@ -330,6 +339,7 @@ private fun TopSpendingCard(topCategories: List<TopCategory>) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        border = panelBorder(),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Text(
@@ -399,6 +409,7 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .clickable(onClick = onOpenCalendar),
+        border = panelBorder(),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Row(
@@ -493,6 +504,8 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
+        // The hero panel gets the accent frame
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Text(
