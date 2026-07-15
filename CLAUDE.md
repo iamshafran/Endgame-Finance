@@ -37,12 +37,22 @@ CREATE TABLE accounts (
     is_active INTEGER DEFAULT 1
 );
 
+-- CATEGORY GROUPS (organizational containers only — never assignable to
+-- transactions, never budgetable). Added in DB v6 (owner-approved, 2026-07-15),
+-- replacing the parent/child category hierarchy.
+CREATE TABLE category_groups (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL           -- 'expense' or 'income'; member categories must match
+);
+
 -- CATEGORIES
 CREATE TABLE categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    parent_id TEXT,
+    parent_id TEXT,              -- DEPRECATED in DB v6: always NULL; column retained per no-removal rule
     type TEXT NOT NULL,          -- 'expense' or 'income'
+    group_id TEXT,               -- owning category group; the app requires one (strays fold into "Other"). Added in DB v6
     FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
 );
 

@@ -47,10 +47,11 @@ class BudgetPrefs(context: Context) {
 data class BudgetRowUi(
     val categoryId: String,
     val displayName: String,
-    /** Bare category name (no "Parent › " prefix) for grouped rendering. */
+    /** Bare category name (no "Group › " prefix) for grouped rendering. */
     val shortName: String,
-    /** Top-level parent id, or null when this row IS top-level. */
-    val parentId: String?,
+    /** Owning category group (required by the app; null only defensively). */
+    val groupId: String?,
+    val groupName: String?,
     val icon: String?,
     val allocated: Long?,
     val rolloverMode: String,
@@ -95,9 +96,12 @@ class BudgetViewModel(
                 db.budgetDao().observeForMonth(key),
                 db.budgetDao().observeSpentByCategory(start, end),
                 db.budgetDao().observeIncome(start, end),
-                db.categoryDao().observeAll(),
+                combine(
+                    db.categoryDao().observeAll(),
+                    db.categoryGroupDao().observeAll(),
+                ) { cats, groups -> cats to groups },
                 budgetPrefs.mode,
-            ) { budgets, spends, income, categories, mode ->
+            ) { budgets, spends, income, (categories, groups), mode ->
                 val allBudgets = db.budgetDao().allOnce()
                 val history = db.budgetDao().spentByCategoryMonth()
                 val carryIn = repo.carryInFor(key, allBudgets, history)
@@ -105,7 +109,8 @@ class BudgetViewModel(
                 val budgetByCat = budgets.associateBy { it.categoryId }
 
                 val categoriesById = categories.associateBy { it.id }
-                val rows = categoryChoices(categories)
+                val groupsById = groups.associateBy { it.id }
+                val rows = categoryChoices(categories, groups)
                     .filter { it.type == Category.TYPE_EXPENSE }
                     .map { choice ->
                         val budget = budgetByCat[choice.id]
@@ -117,7 +122,8 @@ class BudgetViewModel(
                             categoryId = choice.id,
                             displayName = choice.displayName,
                             shortName = category?.name ?: choice.displayName,
-                            parentId = category?.parentId,
+                            groupId = category?.groupId,
+                            groupName = category?.groupId?.let { groupsById[it]?.name },
                             icon = category?.icon,
                             allocated = budget?.allocatedAmount,
                             rolloverMode = budget?.rolloverMode ?: "reset",

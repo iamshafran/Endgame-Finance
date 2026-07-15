@@ -73,8 +73,9 @@ class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
         combine(
             db.budgetDao().observeSpentByCategory(MonthUtil.startMs(now), MonthUtil.endMs(now)),
             db.categoryDao().observeAll(),
-        ) { spends, categories ->
-            val choices = com.endgamefinance.data.db.model.categoryChoices(categories)
+            db.categoryGroupDao().observeAll(),
+        ) { spends, categories, groups ->
+            val choices = com.endgamefinance.data.db.model.categoryChoices(categories, groups)
                 .associateBy { it.id }
             val iconById = categories.associateBy({ it.id }, { it.icon })
             val total = spends.sumOf { it.spent }
@@ -95,9 +96,10 @@ class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
         combine(
             db.budgetDao().observeSpentByCategory(MonthUtil.startMs(now), MonthUtil.endMs(now)),
             db.categoryDao().observeAll(),
+            db.categoryGroupDao().observeAll(),
             db.budgetDao().observeForMonth(MonthUtil.key(now)),
-        ) { spends, categories, budgets ->
-            val choices = com.endgamefinance.data.db.model.categoryChoices(categories)
+        ) { spends, categories, groups, budgets ->
+            val choices = com.endgamefinance.data.db.model.categoryChoices(categories, groups)
                 .associateBy { it.id }
             val sorted = spends.sortedByDescending { it.spent }
             val top = sorted.take(5).map { spend ->

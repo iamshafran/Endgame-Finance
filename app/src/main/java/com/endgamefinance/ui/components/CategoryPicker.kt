@@ -41,27 +41,35 @@ data class CategoryPickItem(
     val id: String,
     /** Short name shown under the icon. */
     val name: String,
-    /** "Parent › Child" form, used in the collapsed field. */
+    /** "Group › Category" form, used in the collapsed field. */
     val displayName: String,
     val type: String,
     val icon: String?,
-    val parentId: String? = null,
-    val parentName: String? = null,
+    val groupId: String? = null,
+    val groupName: String? = null,
 )
 
-/** Builds picker items from raw categories, sorted like the rest of the app. */
-fun categoryPickItems(all: List<Category>): List<CategoryPickItem> {
-    val byId = all.associateBy { it.id }
+/** Builds picker items from raw categories + their groups. */
+fun categoryPickItems(
+    all: List<Category>,
+    groups: List<com.endgamefinance.data.db.entity.CategoryGroup>,
+): List<CategoryPickItem> {
+    val groupsById = groups.associateBy { it.id }
     return all.map { c ->
-        val parent = c.parentId?.let { byId[it] }
+        val group = c.groupId?.let { groupsById[it] }
         CategoryPickItem(
             id = c.id,
             name = c.name,
-            displayName = parent?.let { "${it.name} › ${c.name}" } ?: c.name,
+            // A migrated parent keeps its name inside its own group — skip "Food › Food"
+            displayName = if (group != null && group.name != c.name) {
+                "${group.name} › ${c.name}"
+            } else {
+                c.name
+            },
             type = c.type,
             icon = c.icon,
-            parentId = parent?.id,
-            parentName = parent?.name,
+            groupId = group?.id,
+            groupName = group?.name,
         )
     }.sortedBy { it.displayName.lowercase() }
 }
@@ -130,16 +138,9 @@ fun CategoryPickerSheet(
                         )
                     }
                 }
-                // Group tiles under their parent: standalone categories first,
-                // then one subheaded block per parent (the parent's own tile
-                // leads its children).
-                val topLevel = groupItems.filter { it.parentId == null }
-                    .sortedBy { it.name.lowercase() }
-                val childrenByParent = groupItems.filter { it.parentId != null }
-                    .groupBy { it.parentId!! }
-                val topLevelIds = topLevel.map { it.id }.toSet()
-                val loose = topLevel.filter { it.id !in childrenByParent.keys } +
-                    groupItems.filter { it.parentId != null && it.parentId !in topLevelIds }
+                // One subheaded block per category group. Groupless strays
+                // (shouldn't exist — groups are required) render first, bare.
+                val loose = groupItems.filter { it.groupId == null }
                 items(loose, key = { it.id }) { item ->
                     CategoryTile(
                         item = item,
@@ -147,29 +148,32 @@ fun CategoryPickerSheet(
                         onClick = { onPick(item.id) },
                     )
                 }
-                topLevel.filter { it.id in childrenByParent.keys }.forEach { parent ->
-                    item(span = { GridItemSpan(maxLineSpan) }, key = "parent_${parent.id}") {
-                        Text(
-                            parent.name,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(
-                                top = Spacing.sm, bottom = Spacing.xs, start = Spacing.xs,
-                            ),
-                        )
+                groupItems.filter { it.groupId != null }
+                    .groupBy { it.groupId!! to it.groupName.orEmpty() }
+                    .entries
+                    .sortedBy { it.key.second.lowercase() }
+                    .forEach { (groupKey, members) ->
+                        item(span = { GridItemSpan(maxLineSpan) }, key = "group_${groupKey.first}") {
+                            Text(
+                                groupKey.second,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(
+                                    top = Spacing.sm, bottom = Spacing.xs, start = Spacing.xs,
+                                ),
+                            )
+                        }
+                        items(
+                            members.sortedBy { it.name.lowercase() },
+                            key = { it.id },
+                        ) { item ->
+                            CategoryTile(
+                                item = item,
+                                selected = item.id == selectedId,
+                                onClick = { onPick(item.id) },
+                            )
+                        }
                     }
-                    items(
-                        listOf(parent) +
-                            childrenByParent[parent.id]!!.sortedBy { it.name.lowercase() },
-                        key = { it.id },
-                    ) { item ->
-                        CategoryTile(
-                            item = item,
-                            selected = item.id == selectedId,
-                            onClick = { onPick(item.id) },
-                        )
-                    }
-                }
             }
             if (groups.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {

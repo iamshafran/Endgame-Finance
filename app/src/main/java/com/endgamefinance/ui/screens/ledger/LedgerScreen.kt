@@ -223,8 +223,10 @@ class LedgerViewModel(private val db: EndgameDatabase) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val categories: StateFlow<List<com.endgamefinance.ui.components.CategoryPickItem>> =
-        db.categoryDao().observeAll()
-            .map { com.endgamefinance.ui.components.categoryPickItems(it) }
+        kotlinx.coroutines.flow.combine(
+            db.categoryDao().observeAll(),
+            db.categoryGroupDao().observeAll(),
+        ) { cats, groups -> com.endgamefinance.ui.components.categoryPickItems(cats, groups) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun setFilters(filters: LedgerFilters) {

@@ -369,6 +369,9 @@ class RemindersViewModel(
     val categories = db.categoryDao().observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val categoryGroups = db.categoryGroupDao().observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
     fun consumeMessage() { _message.value = null }

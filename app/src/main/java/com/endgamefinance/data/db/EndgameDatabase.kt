@@ -24,11 +24,12 @@ import com.endgamefinance.data.db.entity.TransactionSplit
 import com.endgamefinance.data.db.entity.TransactionTag
 
 @Database(
-    version = 5,
+    version = 6,
     exportSchema = true,
     entities = [
         Account::class,
         Category::class,
+        com.endgamefinance.data.db.entity.CategoryGroup::class,
         Tag::class,
         TransactionTag::class,
         TransactionEntity::class,
@@ -45,6 +46,7 @@ abstract class EndgameDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun categoryGroupDao(): com.endgamefinance.data.db.dao.CategoryGroupDao
     abstract fun tagDao(): TagDao
     abstract fun budgetDao(): BudgetDao
     abstract fun envelopeDao(): EnvelopeDao

@@ -29,7 +29,7 @@ interface CategoryDao {
     /**
      * Fails with a constraint exception if the category is referenced by
      * splits/budgets/reminders — callers surface that as "in use" rather than
-     * silently orphaning history. Children are detached (parent_id → NULL) per schema.
+     * silently orphaning history.
      */
     @Delete
     suspend fun delete(category: Category)

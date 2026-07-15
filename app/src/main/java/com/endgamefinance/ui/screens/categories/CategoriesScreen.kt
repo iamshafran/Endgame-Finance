@@ -13,14 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,9 +38,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.db.entity.Category
+import com.endgamefinance.data.db.entity.CategoryGroup
+import com.endgamefinance.ui.components.DropdownField
 import com.endgamefinance.ui.components.IconCatalog
 import com.endgamefinance.ui.components.IconPickerDialog
 import com.endgamefinance.ui.theme.Spacing
+
+/** Sentinel id for the "New group…" choice in the category dialog. */
+private const val NEW_GROUP_OPTION = "__new_group__"
 
 @Composable
 fun CategoriesScreen(
@@ -55,7 +56,7 @@ fun CategoriesScreen(
     val state by viewModel.uiState.collectAsState()
     val message by viewModel.message.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var dialogTarget by remember { mutableStateOf<CategoryDialogTarget?>(null) }
+    var dialogTarget by remember { mutableStateOf<DialogTarget?>(null) }
 
     LaunchedEffect(message) {
         message?.let {
@@ -68,7 +69,9 @@ fun CategoriesScreen(
         title = "Categories",
         onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { dialogTarget = CategoryDialogTarget.New }) {
+            FloatingActionButton(
+                onClick = { dialogTarget = DialogTarget.NewCategory(null, null) },
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add category")
             }
         },
@@ -79,17 +82,38 @@ fun CategoriesScreen(
             .padding(innerPadding),
     ) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            section("Expense", state.expense) { dialogTarget = CategoryDialogTarget.Edit(it) }
-            section("Income", state.income) { dialogTarget = CategoryDialogTarget.Edit(it) }
+            section(
+                title = "Expense",
+                type = Category.TYPE_EXPENSE,
+                nodes = state.expense,
+                onEditCategory = { dialogTarget = DialogTarget.EditCategory(it) },
+                onAddCategory = { group ->
+                    dialogTarget = DialogTarget.NewCategory(group.id, group.type)
+                },
+                onEditGroup = { dialogTarget = DialogTarget.EditGroup(it) },
+                onNewGroup = { dialogTarget = DialogTarget.NewGroup(Category.TYPE_EXPENSE) },
+            )
+            section(
+                title = "Income",
+                type = Category.TYPE_INCOME,
+                nodes = state.income,
+                onEditCategory = { dialogTarget = DialogTarget.EditCategory(it) },
+                onAddCategory = { group ->
+                    dialogTarget = DialogTarget.NewCategory(group.id, group.type)
+                },
+                onEditGroup = { dialogTarget = DialogTarget.EditGroup(it) },
+                onNewGroup = { dialogTarget = DialogTarget.NewGroup(Category.TYPE_INCOME) },
+            )
             if (state.expense.isEmpty() && state.income.isEmpty()) {
                 item {
                     com.endgamefinance.ui.components.EmptyState(
                         icon = Icons.Filled.Category,
                         title = "No categories yet",
-                        body = "Categories organize your spending — create Food, then " +
-                            "Groceries nested under it. Budgets and reports build on these.",
+                        body = "Categories live inside groups — create a group like Food, " +
+                            "then categories like Groceries inside it. Budgets and " +
+                            "reports build on these.",
                         actionLabel = "Create a category",
-                        onAction = { dialogTarget = CategoryDialogTarget.New },
+                        onAction = { dialogTarget = DialogTarget.NewCategory(null, null) },
                     )
                 }
             }
@@ -102,32 +126,35 @@ fun CategoriesScreen(
     }
 
     when (val target = dialogTarget) {
-        is CategoryDialogTarget.New -> CategoryDialog(
+        is DialogTarget.NewCategory -> CategoryDialog(
             existing = null,
-            parents = state.expense.map { it.category } + state.income.map { it.category },
-            onSave = { name, type, parentId, icon ->
-                viewModel.create(name, type, parentId, icon)
+            presetGroupId = target.groupId,
+            presetType = target.type,
+            groups = state.groups,
+            onSave = { name, type, groupId, icon ->
+                viewModel.create(name, type, groupId, icon)
+                dialogTarget = null
+            },
+            onSaveWithNewGroup = { name, type, groupName, icon ->
+                viewModel.createWithNewGroup(name, type, groupName, icon)
                 dialogTarget = null
             },
             onDelete = null,
             onDismiss = { dialogTarget = null },
         )
-        is CategoryDialogTarget.Edit -> CategoryDialog(
+        is DialogTarget.EditCategory -> CategoryDialog(
             existing = target.category,
-            // A category that already has children can't be nested under another
-            // parent — the app supports exactly one level of nesting.
-            parents = if ((state.expense + state.income)
-                    .any { it.category.id == target.category.id && it.children.isNotEmpty() }
-            ) {
-                emptyList()
-            } else {
-                (state.expense.map { it.category } + state.income.map { it.category })
-                    .filter { it.id != target.category.id }
-            },
-            onSave = { name, _, parentId, icon ->
+            presetGroupId = target.category.groupId,
+            presetType = target.category.type,
+            groups = state.groups,
+            onSave = { name, _, groupId, icon ->
                 viewModel.update(
-                    target.category.copy(name = name, parentId = parentId, icon = icon),
+                    target.category.copy(name = name, groupId = groupId, icon = icon),
                 )
+                dialogTarget = null
+            },
+            onSaveWithNewGroup = { name, _, groupName, icon ->
+                viewModel.updateWithNewGroup(target.category, name, groupName, icon)
                 dialogTarget = null
             },
             onDelete = {
@@ -136,49 +163,109 @@ fun CategoriesScreen(
             },
             onDismiss = { dialogTarget = null },
         )
+        is DialogTarget.NewGroup -> GroupDialog(
+            existing = null,
+            onSave = { name -> viewModel.createGroup(name, target.type); dialogTarget = null },
+            onDelete = null,
+            onDismiss = { dialogTarget = null },
+        )
+        is DialogTarget.EditGroup -> GroupDialog(
+            existing = target.group,
+            onSave = { name -> viewModel.renameGroup(target.group, name); dialogTarget = null },
+            onDelete = { viewModel.deleteGroup(target.group); dialogTarget = null },
+            onDismiss = { dialogTarget = null },
+        )
         null -> Unit
     }
 }
 
-private sealed interface CategoryDialogTarget {
-    data object New : CategoryDialogTarget
-    data class Edit(val category: Category) : CategoryDialogTarget
+private sealed interface DialogTarget {
+    data class NewCategory(val groupId: String?, val type: String?) : DialogTarget
+    data class EditCategory(val category: Category) : DialogTarget
+    data class NewGroup(val type: String) : DialogTarget
+    data class EditGroup(val group: CategoryGroup) : DialogTarget
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.section(
     title: String,
-    nodes: List<CategoryNode>,
-    onClick: (Category) -> Unit,
+    type: String,
+    nodes: List<GroupNode>,
+    onEditCategory: (Category) -> Unit,
+    onAddCategory: (CategoryGroup) -> Unit,
+    onEditGroup: (CategoryGroup) -> Unit,
+    onNewGroup: () -> Unit,
 ) {
     if (nodes.isEmpty()) return
     item(key = "header_$title") {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(
-                start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.xs,
-            ),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Spacing.md, end = Spacing.sm, top = Spacing.lg),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            TextButton(onClick = onNewGroup) { Text("New group") }
+        }
     }
     nodes.forEach { node ->
-        item(key = node.category.id) {
-            CategoryRow(category = node.category, indent = false, onClick = { onClick(node.category) })
+        item(key = "group_${node.group.id}") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onEditGroup(node.group) }
+                    .padding(start = Spacing.md, end = Spacing.xs, top = Spacing.sm),
+            ) {
+                Text(
+                    text = node.group.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Edit group",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = Spacing.sm),
+                )
+                IconButton(onClick = { onAddCategory(node.group) }) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Add category to ${node.group.name}",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
-        items(node.children, key = { it.id }) { child ->
-            CategoryRow(category = child, indent = true, onClick = { onClick(child) })
+        if (node.categories.isEmpty()) {
+            item(key = "empty_${node.group.id}") {
+                Text(
+                    "No categories yet — tap + to add one.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.xs),
+                )
+            }
+        }
+        items(node.categories, key = { it.id }) { category ->
+            CategoryRow(category = category, onClick = { onEditCategory(category) })
         }
     }
 }
 
 @Composable
-private fun CategoryRow(category: Category, indent: Boolean, onClick: () -> Unit) {
+private fun CategoryRow(category: Category, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(
-                start = if (indent) Spacing.xl else Spacing.md,
+                start = Spacing.xl,
                 end = Spacing.md,
                 top = Spacing.sm,
                 bottom = Spacing.sm,
@@ -198,32 +285,32 @@ private fun CategoryRow(category: Category, indent: Boolean, onClick: () -> Unit
         )
         Text(
             text = category.name,
-            style = if (indent) MaterialTheme.typography.bodyMedium
-            else MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryDialog(
     existing: Category?,
-    parents: List<Category>,
-    onSave: (name: String, type: String, parentId: String?, icon: String?) -> Unit,
+    presetGroupId: String?,
+    presetType: String?,
+    groups: List<CategoryGroup>,
+    onSave: (name: String, type: String, groupId: String, icon: String?) -> Unit,
+    onSaveWithNewGroup: (name: String, type: String, groupName: String, icon: String?) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(existing?.name ?: "") }
-    var type by remember { mutableStateOf(existing?.type ?: Category.TYPE_EXPENSE) }
-    var parentId by remember { mutableStateOf(existing?.parentId) }
+    var type by remember { mutableStateOf(presetType ?: existing?.type ?: Category.TYPE_EXPENSE) }
+    var groupId by remember { mutableStateOf(presetGroupId) }
+    var newGroupName by remember { mutableStateOf("") }
     var icon by remember { mutableStateOf(existing?.icon) }
     var showIconPicker by remember { mutableStateOf(false) }
-    var parentMenuOpen by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-    // Only same-type, top-level categories can be parents (one level of nesting).
-    val eligibleParents = parents.filter { it.type == type && it.parentId == null }
-    val parentName = eligibleParents.firstOrNull { it.id == parentId }?.name ?: "None (top level)"
+    val eligibleGroups = groups.filter { it.type == type }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -257,51 +344,59 @@ private fun CategoryDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
                             selected = type == Category.TYPE_EXPENSE,
-                            onClick = { type = Category.TYPE_EXPENSE; parentId = null },
+                            onClick = { type = Category.TYPE_EXPENSE; groupId = null },
                             label = { Text("Expense") },
                         )
                         FilterChip(
                             selected = type == Category.TYPE_INCOME,
-                            onClick = { type = Category.TYPE_INCOME; parentId = null },
+                            onClick = { type = Category.TYPE_INCOME; groupId = null },
                             label = { Text("Income") },
                         )
                     }
                 }
-                ExposedDropdownMenuBox(
-                    expanded = parentMenuOpen,
-                    onExpandedChange = { parentMenuOpen = it },
-                ) {
+                DropdownField(
+                    label = "Group",
+                    options = eligibleGroups.map { it.id as String? to it.name } +
+                        listOf<Pair<String?, String>>(NEW_GROUP_OPTION to "New group…"),
+                    selectedId = groupId,
+                    onSelect = { groupId = it },
+                    nullLabel = "Pick a group",
+                )
+                if (groupId == NEW_GROUP_OPTION) {
                     OutlinedTextField(
-                        value = parentName,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Parent category") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentMenuOpen)
-                        },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        value = newGroupName,
+                        onValueChange = { newGroupName = it },
+                        label = { Text("New group name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    ExposedDropdownMenu(
-                        expanded = parentMenuOpen,
-                        onDismissRequest = { parentMenuOpen = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("None (top level)") },
-                            onClick = { parentId = null; parentMenuOpen = false },
-                        )
-                        eligibleParents.forEach { parent ->
-                            DropdownMenuItem(
-                                text = { Text(parent.name) },
-                                onClick = { parentId = parent.id; parentMenuOpen = false },
-                            )
-                        }
-                    }
+                }
+                error?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { if (name.isNotBlank()) onSave(name.trim(), type, parentId, icon) },
+                onClick = {
+                    val trimmed = name.trim()
+                    when {
+                        trimmed.isEmpty() -> error = "Name is required"
+                        groupId == NEW_GROUP_OPTION -> {
+                            if (newGroupName.isBlank()) {
+                                error = "Give the new group a name"
+                            } else {
+                                onSaveWithNewGroup(trimmed, type, newGroupName, icon)
+                            }
+                        }
+                        groupId == null -> error = "Every category needs a group"
+                        else -> onSave(trimmed, type, groupId!!, icon)
+                    }
+                },
             ) { Text("Save") }
         },
         dismissButton = {
@@ -323,4 +418,48 @@ private fun CategoryDialog(
             onDismiss = { showIconPicker = false },
         )
     }
+}
+
+@Composable
+private fun GroupDialog(
+    existing: CategoryGroup?,
+    onSave: (name: String) -> Unit,
+    onDelete: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existing == null) "New group" else "Edit group") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Group name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Groups organize categories — transactions and budgets always " +
+                        "attach to the categories inside.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { if (name.isNotBlank()) onSave(name) }) { Text("Save") }
+        },
+        dismissButton = {
+            Row {
+                if (onDelete != null) {
+                    TextButton(onClick = onDelete) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
 }

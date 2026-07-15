@@ -255,9 +255,11 @@ private fun LoanPaymentDialog(
     var note by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val expenseOptions = remember(categories) {
+    val categoryGroups by viewModel.categoryGroups.collectAsState()
+    val expenseOptions = remember(categories, categoryGroups) {
         com.endgamefinance.ui.components.categoryPickItems(
             categories.filter { it.type == Category.TYPE_EXPENSE },
+            categoryGroups,
         )
     }
 

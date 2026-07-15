@@ -74,8 +74,8 @@ object QueryViews {
         "DROP VIEW IF EXISTS v_categories",
         """
         CREATE VIEW v_categories AS
-        SELECT c.name AS name, c.type AS type, p.name AS parent
-        FROM categories c LEFT JOIN categories p ON p.id = c.parent_id
+        SELECT c.name AS name, c.type AS type, g.name AS category_group
+        FROM categories c LEFT JOIN category_groups g ON g.id = c.group_id
         """,
         "DROP VIEW IF EXISTS v_budget_status",
         // Budget vs actual per category-month, so "how much can I spend"-style
@@ -184,7 +184,7 @@ object QueryViews {
         v_transactions(transaction_id, timestamp_ms, date 'YYYY-MM-DD', month 'YYYY-MM', year 'YYYY', type ['expense'|'income'|'transfer'], payee, account, to_account, category, amount_cents, amount, cleared 0/1, shared 0/1, notes) — one row per category split; income positive, expense positive amounts (use type to distinguish); loan interest is an expense category on a transfer.
         v_accounts(name, type ['asset'|'liability'|'investment'], balance, credit_limit, original_loan) — liability balances are negative; available credit = credit_limit + balance; loan progress = 1 + balance/original_loan.
         v_budgets(month 'YYYY-MM', category, allocated, rollover)
-        v_categories(name, type ['expense'|'income'], parent)
+        v_categories(name, type ['expense'|'income'], category_group)
         v_budget_status(month 'YYYY-MM', category, allocated, spent, remaining) — budget vs actual per category and month; remaining = allocated - spent.
         v_reminders(name, category, account, amount, frequency ['daily'|'weekly'|'monthly'|'yearly'|'once'], every_n, next_due 'YYYY-MM-DD', auto_post 0/1) — scheduled bills and subscriptions; amount NULL when variable.
         v_envelopes(name, saved, target, linked_account) — savings goals; progress = saved/target.

@@ -88,10 +88,12 @@ class BackupManager(private val db: EndgameDatabase) {
             dao.clearEnvelopes()
             dao.clearTags()
             dao.clearCategories()
+            dao.clearCategoryGroups()
             dao.clearAccounts()
             dao.clearSnapshots()
-            // parents → children; categories parents-first for the self-FK
+            // parents → children; groups before the categories that point at them
             dao.insertAccounts(payload.accounts)
+            dao.insertCategoryGroups(payload.categoryGroups)
             dao.insertCategories(payload.categories.sortedBy { it.parentId != null })
             dao.insertTags(payload.tags)
             dao.insertTransactions(payload.transactions)
@@ -111,6 +113,7 @@ class BackupManager(private val db: EndgameDatabase) {
     private data class Payload(
         val accounts: List<Account>,
         val categories: List<Category>,
+        val categoryGroups: List<com.endgamefinance.data.db.entity.CategoryGroup>,
         val tags: List<Tag>,
         val transactionTags: List<TransactionTag>,
         val transactions: List<TransactionEntity>,
@@ -127,7 +130,8 @@ class BackupManager(private val db: EndgameDatabase) {
         val dao = db.backupDao()
         return JSONObject().apply {
             put("format", "endgame-finance-backup")
-            put("payloadVersion", 1)
+            // v2 (2026-07-15): categoryGroups table + categories.groupId
+            put("payloadVersion", 2)
             put("exportedAt", System.currentTimeMillis())
             put("accounts", JSONArray(dao.allAccounts().map { a ->
                 JSONObject().apply {
@@ -139,7 +143,12 @@ class BackupManager(private val db: EndgameDatabase) {
             put("categories", JSONArray(dao.allCategories().map { c ->
                 JSONObject().apply {
                     put("id", c.id); put("name", c.name); put("parentId", c.parentId)
-                    put("type", c.type); put("icon", c.icon)
+                    put("type", c.type); put("icon", c.icon); put("groupId", c.groupId)
+                }
+            }))
+            put("categoryGroups", JSONArray(dao.allCategoryGroups().map { g ->
+                JSONObject().apply {
+                    put("id", g.id); put("name", g.name); put("type", g.type)
                 }
             }))
             put("tags", JSONArray(dao.allTags().map { t ->
@@ -223,7 +232,7 @@ class BackupManager(private val db: EndgameDatabase) {
             if (isNull(key)) null else getInt(key)
         fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
 
-        return Payload(
+        return upgradeLegacyCategories(Payload(
             accounts = json.getJSONArray("accounts").objects().map {
                 Account(
                     id = it.getString("id"), name = it.getString("name"),
@@ -239,6 +248,13 @@ class BackupManager(private val db: EndgameDatabase) {
                     id = it.getString("id"), name = it.getString("name"),
                     parentId = it.optStringOrNull("parentId"),
                     type = it.getString("type"), icon = it.optStringOrNull("icon"),
+                    groupId = if (it.has("groupId")) it.optStringOrNull("groupId") else null,
+                )
+            },
+            categoryGroups = json.optJSONArray("categoryGroups")?.objects().orEmpty().map {
+                com.endgamefinance.data.db.entity.CategoryGroup(
+                    id = it.getString("id"), name = it.getString("name"),
+                    type = it.getString("type"),
                 )
             },
             tags = json.getJSONArray("tags").objects().map {
@@ -322,6 +338,68 @@ class BackupManager(private val db: EndgameDatabase) {
                     netWorth = it.getLong("netWorth"),
                 )
             },
-        )
+        ))
+    }
+
+    /**
+     * Pre-v2 payloads carry parent/child categories and no groups. Applies the
+     * same rules as the DB v6 migration: parents-with-children become groups
+     * (reusing their id); a parent referenced by splits/budgets/reminders
+     * survives as a same-named category inside its group; purely structural
+     * parents are dropped; everything left without a group folds into the
+     * sentinel "Other" group of its type.
+     */
+    private fun upgradeLegacyCategories(p: Payload): Payload {
+        if (p.categoryGroups.isNotEmpty() || p.categories.isEmpty()) return p
+        val referenced = buildSet {
+            p.splits.forEach { it.categoryId?.let(::add) }
+            p.budgets.forEach { add(it.categoryId) }
+            p.reminders.forEach { it.categoryId?.let(::add) }
+        }
+        val byId = p.categories.associateBy { it.id }
+        val parentIds = p.categories.mapNotNull { it.parentId }
+            .filter { it in byId }.toSet()
+        val groups = mutableListOf<com.endgamefinance.data.db.entity.CategoryGroup>()
+        parentIds.forEach { pid ->
+            byId[pid]?.let { parent ->
+                groups += com.endgamefinance.data.db.entity.CategoryGroup(
+                    id = parent.id, name = parent.name, type = parent.type,
+                )
+            }
+        }
+        var needOtherExpense = false
+        var needOtherIncome = false
+        val categories = p.categories.mapNotNull { c ->
+            val isParent = c.id in parentIds
+            when {
+                isParent && c.id in referenced -> c.copy(parentId = null, groupId = c.id)
+                isParent -> null // purely structural — the group replaces it
+                c.parentId != null && c.parentId in parentIds ->
+                    c.copy(parentId = null, groupId = c.parentId)
+                else -> {
+                    val sentinel = if (c.type == Category.TYPE_INCOME) {
+                        needOtherIncome = true
+                        com.endgamefinance.data.db.entity.CategoryGroup.OTHER_INCOME_ID
+                    } else {
+                        needOtherExpense = true
+                        com.endgamefinance.data.db.entity.CategoryGroup.OTHER_EXPENSE_ID
+                    }
+                    c.copy(parentId = null, groupId = sentinel)
+                }
+            }
+        }
+        if (needOtherExpense) {
+            groups += com.endgamefinance.data.db.entity.CategoryGroup(
+                com.endgamefinance.data.db.entity.CategoryGroup.OTHER_EXPENSE_ID,
+                "Other", Category.TYPE_EXPENSE,
+            )
+        }
+        if (needOtherIncome) {
+            groups += com.endgamefinance.data.db.entity.CategoryGroup(
+                com.endgamefinance.data.db.entity.CategoryGroup.OTHER_INCOME_ID,
+                "Other", Category.TYPE_INCOME,
+            )
+        }
+        return p.copy(categories = categories, categoryGroups = groups)
     }
 }

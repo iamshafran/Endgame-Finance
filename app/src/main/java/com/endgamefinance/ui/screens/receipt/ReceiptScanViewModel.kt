@@ -88,8 +88,9 @@ class ReceiptScanViewModel(
 
                 val allCats = db.categoryDao().getAllOnce()
                 val expense = allCats.filter { it.type == Category.TYPE_EXPENSE }
-                _categoryOptions.value =
-                    com.endgamefinance.ui.components.categoryPickItems(expense)
+                _categoryOptions.value = com.endgamefinance.ui.components.categoryPickItems(
+                    expense, db.categoryGroupDao().getAllOnce(),
+                )
 
                 val accts = db.accountDao().getAllOnce().filter { it.isActive }
                 _accounts.value = accts.map { it.id as String? to it.name }

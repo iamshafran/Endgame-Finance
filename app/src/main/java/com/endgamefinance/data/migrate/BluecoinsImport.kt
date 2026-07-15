@@ -291,39 +291,53 @@ object BluecoinsImport {
                 return account.id
             }
 
-            // --- categories: two-level hierarchy, typed by usage ---
+            // --- categories: Bluecoins groups map to category groups (DB v6) ---
+            val groupDao = db.categoryGroupDao()
             val existing = categoryDao.getAllOnce()
+            val existingGroups = groupDao.getAllOnce()
+            val groupNamesById = existingGroups.associateBy({ it.id }, { it.name })
             val categoryIds = existing.associateBy(
-                { (it.parentId?.let { p -> existing.find { e -> e.id == p }?.name } ?: "") + "/" + it.name },
+                { (it.groupId?.let { g -> groupNamesById[g] } ?: "") + "/" + it.name },
                 { it.id },
             ).toMutableMap()
-            val parentIds = existing.filter { it.parentId == null }
-                .associateBy({ it.name.lowercase() }, { it.id }).toMutableMap()
+            val groupIds = existingGroups
+                .associateBy({ it.type + "/" + it.name.lowercase() }, { it.id }).toMutableMap()
+
+            suspend fun groupIdFor(groupName: String?, type: String): String {
+                // Rows without a Bluecoins group land in the sentinel "Other"
+                if (groupName == null) {
+                    val sentinel = if (type == Category.TYPE_INCOME) {
+                        com.endgamefinance.data.db.entity.CategoryGroup.OTHER_INCOME_ID
+                    } else {
+                        com.endgamefinance.data.db.entity.CategoryGroup.OTHER_EXPENSE_ID
+                    }
+                    return groupIds.getOrPut(type + "/other") {
+                        com.endgamefinance.data.db.entity.CategoryGroup(sentinel, "Other", type)
+                            .also { groupDao.insert(it) }
+                            .id
+                    }
+                }
+                return groupIds.getOrPut(type + "/" + groupName.lowercase()) {
+                    val g = com.endgamefinance.data.db.entity.CategoryGroup(
+                        id = UUID.randomUUID().toString(),
+                        name = groupName,
+                        type = type,
+                    )
+                    groupDao.insert(g)
+                    g.id
+                }
+            }
 
             suspend fun categoryId(row: Row): String? {
                 val name = row.category ?: return null
                 val type = if (row.kind == Kind.INCOME) Category.TYPE_INCOME else Category.TYPE_EXPENSE
                 val key = (row.categoryGroup ?: "") + "/" + name
                 categoryIds[key]?.let { return it }
-                val parentId = row.categoryGroup?.let { groupName ->
-                    parentIds[groupName.lowercase()] ?: run {
-                        val p = Category(
-                            id = UUID.randomUUID().toString(),
-                            name = groupName,
-                            parentId = null,
-                            type = type,
-                        )
-                        categoryDao.insert(p)
-                        categoriesCreated++
-                        parentIds[groupName.lowercase()] = p.id
-                        p.id
-                    }
-                }
                 val c = Category(
                     id = UUID.randomUUID().toString(),
                     name = name,
-                    parentId = parentId,
                     type = type,
+                    groupId = groupIdFor(row.categoryGroup, type),
                 )
                 categoryDao.insert(c)
                 categoriesCreated++

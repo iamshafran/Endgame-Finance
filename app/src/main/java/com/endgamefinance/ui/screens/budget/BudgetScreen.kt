@@ -81,13 +81,14 @@ fun BudgetScreen() {
     }
 }
 
-/** A top-level category with its nested children, plus aggregate figures. */
+/** A category group's budget rows, plus aggregate figures. */
 private data class BudgetGroup(
-    val parent: BudgetRowUi,
-    val children: List<BudgetRowUi>,
+    val key: String,
+    val name: String,
+    val rows: List<BudgetRowUi>,
 ) {
-    val spent: Long get() = parent.spent + children.sumOf { it.spent }
-    val available: Long get() = parent.available + children.sumOf { it.available }
+    val spent: Long get() = rows.sumOf { it.spent }
+    val available: Long get() = rows.sumOf { it.available }
     val overBudget: Boolean get() = available > 0 && spent > available
     val hasActivity: Boolean get() = spent > 0 || available > 0
 }
@@ -102,17 +103,14 @@ private fun BudgetsTab(
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
     var showIdle by remember { mutableStateOf(false) }
 
-    // Group children under their parent so a long category list reads as a
-    // handful of collapsible sections instead of a wall of rows.
-    val topLevel = state.rows.filter { it.parentId == null }
-    val topLevelIds = topLevel.map { it.categoryId }.toSet()
-    val byParent = state.rows
-        .filter { it.parentId != null }
-        .groupBy { it.parentId!! }
-    val groups = topLevel.map { BudgetGroup(it, byParent[it.categoryId].orEmpty()) } +
-        // Orphans (parent archived/missing from this list) surface as their own group
-        byParent.filterKeys { it !in topLevelIds }.values.flatten()
-            .map { BudgetGroup(it, emptyList()) }
+    // Category groups keep a long list readable: one collapsible section per
+    // group with aggregate figures.
+    val groups = state.rows
+        .groupBy { (it.groupId ?: "__none__") to (it.groupName ?: "Ungrouped") }
+        .map { (key, rows) ->
+            BudgetGroup(key.first, key.second, rows.sortedBy { it.shortName.lowercase() })
+        }
+        .sortedBy { it.name.lowercase() }
     val (active, idle) = groups.partition { it.hasActivity }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -153,28 +151,19 @@ private fun BudgetsTab(
                 }
             }
         }
-        items(active, key = { it.parent.categoryId }) { group ->
-            if (group.children.isEmpty()) {
-                BudgetRow(row = group.parent, onClick = { editRow = group.parent })
-            } else {
-                val expanded = group.parent.categoryId in expandedIds
-                BudgetGroupHeader(
-                    group = group,
-                    expanded = expanded,
-                    onToggle = {
-                        expandedIds = if (expanded) expandedIds - group.parent.categoryId
-                        else expandedIds + group.parent.categoryId
-                    },
-                )
-                if (expanded) {
-                    BudgetRow(
-                        row = group.parent,
-                        onClick = { editRow = group.parent },
-                        indent = true,
-                    )
-                    group.children.forEach { child ->
-                        BudgetRow(row = child, onClick = { editRow = child }, indent = true)
-                    }
+        items(active, key = { it.key }) { group ->
+            val expanded = group.key in expandedIds
+            BudgetGroupHeader(
+                group = group,
+                expanded = expanded,
+                onToggle = {
+                    expandedIds = if (expanded) expandedIds - group.key
+                    else expandedIds + group.key
+                },
+            )
+            if (expanded) {
+                group.rows.forEach { row ->
+                    BudgetRow(row = row, onClick = { editRow = row }, indent = true)
                 }
             }
             HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.md))
@@ -185,7 +174,7 @@ private fun BudgetsTab(
                     onClick = { showIdle = !showIdle },
                     modifier = Modifier.padding(horizontal = Spacing.sm),
                 ) {
-                    val idleCount = idle.sumOf { 1 + it.children.size }
+                    val idleCount = idle.sumOf { it.rows.size }
                     Text(
                         if (showIdle) "Hide categories with no budget or spending"
                         else "$idleCount categories with no budget or spending",
@@ -193,10 +182,20 @@ private fun BudgetsTab(
                 }
             }
             if (showIdle) {
-                items(idle, key = { "idle_${it.parent.categoryId}" }) { group ->
-                    BudgetRow(row = group.parent, onClick = { editRow = group.parent })
-                    group.children.forEach { child ->
-                        BudgetRow(row = child, onClick = { editRow = child }, indent = true)
+                items(idle, key = { "idle_${it.key}" }) { group ->
+                    val expanded = group.key in expandedIds
+                    BudgetGroupHeader(
+                        group = group,
+                        expanded = expanded,
+                        onToggle = {
+                            expandedIds = if (expanded) expandedIds - group.key
+                            else expandedIds + group.key
+                        },
+                    )
+                    if (expanded) {
+                        group.rows.forEach { row ->
+                            BudgetRow(row = row, onClick = { editRow = row }, indent = true)
+                        }
                     }
                 }
             }
@@ -300,7 +299,7 @@ private fun SummaryLine(label: String, value: String, valueColor: androidx.compo
     }
 }
 
-/** Collapsible header for a parent category: aggregate figures + progress. */
+/** Collapsible header for a category group: aggregate figures + progress. */
 @Composable
 private fun BudgetGroupHeader(
     group: BudgetGroup,
@@ -328,19 +327,13 @@ private fun BudgetGroupHeader(
                     else Icons.Filled.ExpandMore,
                     contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = Spacing.xs),
-                )
-                Icon(
-                    imageVector = IconCatalog.get(group.parent.icon) ?: Icons.Filled.Category,
-                    contentDescription = null,
-                    tint = if (group.parent.icon != null) MaterialTheme.colorScheme.tertiary
-                    else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(end = Spacing.sm),
                 )
                 Column {
-                    Text(group.parent.shortName, style = MaterialTheme.typography.titleMedium)
+                    Text(group.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "${group.children.size + 1} categories",
+                        "${group.rows.size} " +
+                            if (group.rows.size == 1) "category" else "categories",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

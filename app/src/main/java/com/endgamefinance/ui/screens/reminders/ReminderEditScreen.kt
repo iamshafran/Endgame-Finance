@@ -133,9 +133,12 @@ fun ReminderEditScreen(
         )
 
         if (toAccountId == null) {
+            val categoryGroups by viewModel.categoryGroups.collectAsState()
             com.endgamefinance.ui.components.CategoryPickerField(
                 label = "Category (optional; an income category makes this expected income)",
-                items = com.endgamefinance.ui.components.categoryPickItems(categories),
+                items = com.endgamefinance.ui.components.categoryPickItems(
+                    categories, categoryGroups,
+                ),
                 selectedId = categoryId,
                 onSelect = { categoryId = it },
                 nullLabel = "None",
