@@ -520,6 +520,27 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                 BreakdownRow("Cash in asset accounts", sts.liquidBalances, positive = true)
                 BreakdownRow("Set aside in envelopes", -sts.envelopeFunds, positive = false)
                 BreakdownRow("Bills before next income", -sts.upcomingBills, positive = false)
+                // The exact bills behind that number, so it explains itself
+                sts.countedBills.forEach { bill ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = Spacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            bill.name + if (bill.overdue) " · overdue" else "",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (bill.overdue) LocalMoneyColors.current.loss
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            Money.format(bill.amountCents),
+                            style = MaterialTheme.typography.labelMedium.tabular,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 BreakdownRow(
                     "Unspent budget commitments",
                     -sts.remainingBudgetCommitments,
