@@ -6,6 +6,15 @@ import com.endgamefinance.data.db.entity.Envelope
 import com.endgamefinance.data.db.entity.Reminder
 import com.endgamefinance.data.db.model.AccountWithBalance
 
+/** One reminder's contribution to UpcomingBills, for the breakdown. */
+data class CountedBill(
+    val name: String,
+    /** Total counted inside the window (all occurrences). */
+    val amountCents: Long,
+    /** True when the reminder's next due date is already in the past. */
+    val overdue: Boolean,
+)
+
 data class SafeToSpend(
     val amountCents: Long,
     // Inputs, for the tap-to-explain breakdown — each maps 1:1 to docs/safe-to-spend.md
@@ -17,6 +26,8 @@ data class SafeToSpend(
     val nextIncomeDate: Long?,
     /** Variable-amount bills that could not be counted — surfaced, never $0. */
     val uncountedVariableBills: List<String>,
+    /** Exactly which bills make up [upcomingBills], so the number explains itself. */
+    val countedBills: List<CountedBill> = emptyList(),
 )
 
 /**
@@ -57,9 +68,13 @@ object SafeToSpendCalculator {
             r.toAccountId == null &&
                 r.categoryId?.let { categoriesById[it] }?.type == Category.TYPE_INCOME
 
-        // Next expected income event; fall back to full horizon if none
+        // Next expected income event; fall back to full horizon if none.
+        // Per the doc, the WINDOW is set by the income occurrence's date — a
+        // variable amount doesn't matter here (we never add expected income,
+        // we only stop counting bills at payday). Requiring a fixed amount
+        // silently widened the window to 30 days and swept in far more bills.
         val nextIncomeDate = reminders
-            .filter { it.amount != null && isIncomeReminder(it) && it.accountId in assetAccountIds }
+            .filter { isIncomeReminder(it) && it.accountId in assetAccountIds }
             .minOfOrNull { it.nextDueDate }
             ?.takeIf { it <= horizonEnd }
         val windowEnd = nextIncomeDate ?: horizonEnd
@@ -69,14 +84,16 @@ object SafeToSpendCalculator {
         // double-count correction.
         var upcomingBills = 0L
         val billsByCategory = mutableMapOf<String, Long>()
+        val countedBills = mutableListOf<CountedBill>()
         reminders
             .filter { it.amount != null && !isIncomeReminder(it) && it.accountId in assetAccountIds }
             .forEach { reminder ->
                 var current = reminder
                 var guard = 0
+                var billTotal = 0L
                 while (current.nextDueDate <= windowEnd && guard < 100) {
                     val amount = requireNotNull(reminder.amount)
-                    upcomingBills += amount
+                    billTotal += amount
                     reminder.categoryId?.let { cat ->
                         billsByCategory[cat] = (billsByCategory[cat] ?: 0L) + amount
                     }
@@ -86,10 +103,20 @@ object SafeToSpendCalculator {
                     )
                     guard++
                 }
+                if (billTotal > 0) {
+                    upcomingBills += billTotal
+                    countedBills += CountedBill(
+                        name = reminder.name,
+                        amountCents = billTotal,
+                        overdue = reminder.nextDueDate < nowMs,
+                    )
+                }
             }
 
+        // Income reminders are not bills — a variable salary belongs in
+        // neither the bill sum nor the "not counted" caveat.
         val uncountedVariable = reminders
-            .filter { it.amount == null && it.accountId in assetAccountIds }
+            .filter { it.amount == null && !isIncomeReminder(it) && it.accountId in assetAccountIds }
             .map { it.name }
 
         // RemainingBudgetCommitments with the double-count correction:
@@ -109,6 +136,7 @@ object SafeToSpendCalculator {
             remainingBudgetCommitments = remainingCommitments,
             nextIncomeDate = nextIncomeDate,
             uncountedVariableBills = uncountedVariable,
+            countedBills = countedBills.sortedByDescending { it.amountCents },
         )
     }
 }
