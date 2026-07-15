@@ -868,14 +868,16 @@ fun TransactionRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            // Expense icons take the accent (tertiary); income takes primary
+            val accent = if (item.type == "income") MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.tertiary
             if (hasIcon) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    // Category icons take the accent role, not primary
                     tint = if (item.type != "transfer" &&
                         IconCatalog.get(item.categoryIcon) != null
-                    ) MaterialTheme.colorScheme.tertiary
+                    ) accent
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp),
                 )
@@ -883,7 +885,7 @@ fun TransactionRow(
                 Text(
                     text = item.payee.trim().take(1).uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = accent,
                 )
             }
         }

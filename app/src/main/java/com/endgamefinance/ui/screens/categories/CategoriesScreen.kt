@@ -188,9 +188,12 @@ private fun CategoryRow(category: Category, indent: Boolean, onClick: () -> Unit
         Icon(
             imageVector = IconCatalog.get(category.icon) ?: Icons.Filled.Category,
             contentDescription = null,
-            // Category icons take the accent role, not primary
-            tint = if (category.icon != null) MaterialTheme.colorScheme.tertiary
-            else MaterialTheme.colorScheme.outline,
+            // Expense icons take the accent (tertiary); income takes primary
+            tint = when {
+                category.icon == null -> MaterialTheme.colorScheme.outline
+                category.type == Category.TYPE_INCOME -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.tertiary
+            },
             modifier = Modifier.padding(end = Spacing.sm),
         )
         Text(
@@ -235,8 +238,12 @@ private fun CategoryDialog(
                         Icon(
                             imageVector = IconCatalog.get(icon) ?: Icons.Filled.Category,
                             contentDescription = "Pick icon",
-                            tint = if (icon != null) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.outline,
+                            tint = when {
+                                icon == null -> MaterialTheme.colorScheme.outline
+                                type == Category.TYPE_INCOME ->
+                                    MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.tertiary
+                            },
                         )
                     }
                     OutlinedTextField(

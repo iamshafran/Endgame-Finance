@@ -45,6 +45,7 @@ data class CategoryPickItem(
     val displayName: String,
     val type: String,
     val icon: String?,
+    val parentId: String? = null,
     val parentName: String? = null,
 )
 
@@ -59,6 +60,7 @@ fun categoryPickItems(all: List<Category>): List<CategoryPickItem> {
             displayName = parent?.let { "${it.name} › ${c.name}" } ?: c.name,
             type = c.type,
             icon = c.icon,
+            parentId = parent?.id,
             parentName = parent?.name,
         )
     }.sortedBy { it.displayName.lowercase() }
@@ -128,12 +130,45 @@ fun CategoryPickerSheet(
                         )
                     }
                 }
-                items(groupItems, key = { it.id }) { item ->
+                // Group tiles under their parent: standalone categories first,
+                // then one subheaded block per parent (the parent's own tile
+                // leads its children).
+                val topLevel = groupItems.filter { it.parentId == null }
+                    .sortedBy { it.name.lowercase() }
+                val childrenByParent = groupItems.filter { it.parentId != null }
+                    .groupBy { it.parentId!! }
+                val topLevelIds = topLevel.map { it.id }.toSet()
+                val loose = topLevel.filter { it.id !in childrenByParent.keys } +
+                    groupItems.filter { it.parentId != null && it.parentId !in topLevelIds }
+                items(loose, key = { it.id }) { item ->
                     CategoryTile(
                         item = item,
                         selected = item.id == selectedId,
                         onClick = { onPick(item.id) },
                     )
+                }
+                topLevel.filter { it.id in childrenByParent.keys }.forEach { parent ->
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "parent_${parent.id}") {
+                        Text(
+                            parent.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(
+                                top = Spacing.sm, bottom = Spacing.xs, start = Spacing.xs,
+                            ),
+                        )
+                    }
+                    items(
+                        listOf(parent) +
+                            childrenByParent[parent.id]!!.sortedBy { it.name.lowercase() },
+                        key = { it.id },
+                    ) { item ->
+                        CategoryTile(
+                            item = item,
+                            selected = item.id == selectedId,
+                            onClick = { onPick(item.id) },
+                        )
+                    }
                 }
             }
             if (groups.isEmpty()) {
@@ -175,9 +210,12 @@ private fun CategoryTile(
             Icon(
                 imageVector = IconCatalog.get(item.icon) ?: Icons.Filled.Category,
                 contentDescription = null,
-                // Category icons take the accent role, not primary
-                tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.tertiary,
+                // Expense icons take the accent (tertiary); income takes primary
+                tint = when {
+                    selected -> MaterialTheme.colorScheme.onPrimaryContainer
+                    item.type == Category.TYPE_INCOME -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.tertiary
+                },
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -191,18 +229,6 @@ private fun CategoryTile(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.xs),
         )
-        item.parentName?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = MaterialTheme.typography.labelMedium.fontSize * 0.85f,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
