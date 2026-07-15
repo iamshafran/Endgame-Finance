@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
@@ -270,6 +271,13 @@ fun LedgerScreen(
     // System back exits selection mode instead of leaving the ledger.
     BackHandler(enabled = selectionMode) { viewModel.clearSelection() }
 
+    // The filter panel is the first list item; snap to the top when it opens so
+    // it's actually visible even if the ledger was scrolled down.
+    val listState = rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(showFilters) {
+        if (showFilters) listState.animateScrollToItem(0)
+    }
+
     // Transient confirmations (e.g. "Deleted 3", category-skip note).
     val context = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(message) {
@@ -344,6 +352,7 @@ fun LedgerScreen(
         },
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -751,7 +760,7 @@ private fun SwipeableTransactionRow(
             val direction = state.dismissDirection
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize() // fill the row's full height, not just its content
                     .background(
                         when (direction) {
                             androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd ->

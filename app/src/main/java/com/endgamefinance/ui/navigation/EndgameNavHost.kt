@@ -104,8 +104,11 @@ fun EndgameApp() {
     ) { innerPadding ->
         // Swipe left/right anywhere a child doesn't own the horizontal gesture
         // (lists scroll vertically, so this mostly just works) to move between
-        // the five bottom tabs. Swipeable ledger rows keep their own gesture.
-        val onTab = bottomTabs.any { it.route == currentRoute }
+        // the bottom tabs. The Ledger tab is excluded entirely: its rows are
+        // horizontally swipeable (clear/delete), and the two gestures racing
+        // made row swipes unreliable.
+        val onTab = bottomTabs.any { it.route == currentRoute } &&
+            currentRoute != Routes.LEDGER
         NavHost(
             navController = navController,
             startDestination = Routes.DASHBOARD,
