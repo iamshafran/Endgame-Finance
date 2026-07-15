@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -246,10 +247,19 @@ fun NetWorthChart(
             )
         }
 
-        // Active point's asset/liability split under the axis
+        // Active point's asset/liability split under the axis — figures wear
+        // the palette's income/expense colors, matching their chart lines
         Text(
-            text = "Assets ${Money.format(readout.totalAssets)} · " +
-                "Liabilities ${Money.format(readout.totalLiabilities)}",
+            text = androidx.compose.ui.text.buildAnnotatedString {
+                append("Assets ")
+                withStyle(androidx.compose.ui.text.SpanStyle(color = assetColor)) {
+                    append(Money.format(readout.totalAssets))
+                }
+                append(" · Liabilities ")
+                withStyle(androidx.compose.ui.text.SpanStyle(color = liabilityColor)) {
+                    append(Money.format(readout.totalLiabilities))
+                }
+            },
             style = MaterialTheme.typography.labelMedium.tabular,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
