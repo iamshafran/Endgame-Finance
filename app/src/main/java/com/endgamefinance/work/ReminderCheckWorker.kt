@@ -50,7 +50,15 @@ class ReminderCheckWorker(
         ReminderNotifier.notifyDue(applicationContext, needAttention)
 
         // Same cadence keeps the net-worth trend fed: one snapshot per day, upserted
-        SnapshotWriter.writeToday(db)
+        // One-shot: rebuild once so trends predating the import-aware backfill
+        // (2026-07-15) pick up imported history instead of staying flat.
+        val prefs = applicationContext.getSharedPreferences("snapshot_prefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("rebuilt_for_imports", false)) {
+            SnapshotWriter.rebuild(db)
+            prefs.edit().putBoolean("rebuilt_for_imports", true).apply()
+        } else {
+            SnapshotWriter.writeToday(db)
+        }
         return Result.success()
     }
 }

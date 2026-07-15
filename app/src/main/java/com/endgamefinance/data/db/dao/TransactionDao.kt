@@ -134,7 +134,7 @@ interface TransactionDao {
      */
     @Query(
         """
-        SELECT t.id, t.payee, t.timestamp, t.type,
+        SELECT t.id, t.payee, t.timestamp, t.type, t.notes,
                t.is_cleared AS isCleared, t.is_shared AS isShared,
                a.name AS accountName, b.name AS toAccountName,
                COALESCE((SELECT SUM(s.amount) FROM transaction_splits s

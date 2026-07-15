@@ -62,18 +62,13 @@ data class RemindersUiState(
 
 enum class Momentum { NONE, LOW, NORMAL, HIGH }
 
-data class CalendarBill(
-    val name: String,
-    /** NULL when the bill's amount varies. */
-    val amountCents: Long?,
-)
-
 data class CalendarDay(
     val date: LocalDate,
     val spent: Long,
     val momentum: Momentum,
-    val overdueBills: List<CalendarBill>,
-    val upcomingBills: List<CalendarBill>,
+    /** Full reminder rows so day details render like the Reminders screen. */
+    val overdueBills: List<ReminderUi>,
+    val upcomingBills: List<ReminderUi>,
 )
 
 data class CalendarUiState(
@@ -144,9 +139,14 @@ class RemindersViewModel(
                 val today = LocalDate.now()
                 val spentByDay = daySpends.associateBy({ it.day }, { it.spent })
 
-                // Expand each reminder's occurrences across the visible month
+                // Expand each reminder's occurrences across the visible month,
+                // as full ReminderUi rows (same rendering as the Reminders tab)
+                val accountNames = accountsWithBalances
+                    .associateBy({ it.account.id }, { it.account.name })
+                val accountsById = accountsWithBalances.associateBy { it.account.id }
+                val categoriesById = allCategories.associateBy { it.id }
                 val billsByDay =
-                    mutableMapOf<LocalDate, MutableList<Pair<CalendarBill, Boolean>>>()
+                    mutableMapOf<LocalDate, MutableList<Pair<ReminderUi, Boolean>>>()
                 reminders.forEach { reminder ->
                     var current = reminder
                     var guard = 0
@@ -155,8 +155,29 @@ class RemindersViewModel(
                             val date = java.time.Instant.ofEpochMilli(current.nextDueDate)
                                 .atZone(zone).toLocalDate()
                             val overdue = date.isBefore(today)
-                            billsByDay.getOrPut(date) { mutableListOf() }
-                                .add(CalendarBill(reminder.name, reminder.amount) to overdue)
+                            val category = current.categoryId?.let { categoriesById[it] }
+                            val destination = current.toAccountId
+                                ?.let { accountsById[it]?.account }
+                            billsByDay.getOrPut(date) { mutableListOf() }.add(
+                                ReminderUi(
+                                    reminder = current,
+                                    accountName = accountNames[current.accountId]
+                                        ?: "(archived account)",
+                                    toAccountName = current.toAccountId?.let {
+                                        accountNames[it] ?: "(archived account)"
+                                    },
+                                    categoryName = category?.name,
+                                    categoryIcon = category?.icon,
+                                    isIncome = current.toAccountId == null &&
+                                        category?.type ==
+                                        com.endgamefinance.data.db.entity.Category.TYPE_INCOME,
+                                    isDue = !date.isAfter(today),
+                                    isOverdue = overdue,
+                                    isLoanPayment = destination?.type ==
+                                        com.endgamefinance.data.db.entity.Account.TYPE_LIABILITY &&
+                                        destination.originalPrincipal != null,
+                                ) to overdue,
+                            )
                         }
                         if (current.frequency == "once") break
                         current = current.copy(

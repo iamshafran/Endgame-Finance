@@ -849,7 +849,8 @@ fun TransactionRow(
     val (amountText, amountColor) = when (item.type) {
         "income" -> "+${Money.format(item.totalAmount)}" to moneyColors.gain
         "expense" -> "−${Money.format(item.totalAmount)}" to moneyColors.loss
-        else -> Money.format(item.totalAmount) to MaterialTheme.colorScheme.onSurfaceVariant
+        // Transfers wear the palette's tertiary accent
+        else -> Money.format(item.totalAmount) to MaterialTheme.colorScheme.tertiary
     }
     Row(
         modifier = Modifier
@@ -883,14 +884,14 @@ fun TransactionRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            // Expense icons take the accent (tertiary); income takes primary
+            // Income primary, expense tertiary; transfers also tertiary
             val accent = if (item.type == "income") MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.tertiary
             if (hasIcon) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = if (item.type != "transfer" &&
+                    tint = if (item.type == "transfer" ||
                         IconCatalog.get(item.categoryIcon) != null
                     ) accent
                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -931,6 +932,18 @@ fun TransactionRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // The note, when present, gets its own quiet line under the category
+            item.notes?.takeIf { it.isNotBlank() }?.let { note ->
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
         }
         Column(horizontalAlignment = Alignment.End) {
             Row(verticalAlignment = Alignment.CenterVertically) {

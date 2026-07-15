@@ -314,21 +314,9 @@ private fun DayDetail(
                 color = if (day.momentum == Momentum.HIGH) moneyColors.loss
                 else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            day.overdueBills.forEach { bill ->
-                Text(
-                    "Overdue: ${bill.name} · " +
-                        (bill.amountCents?.let { Money.format(it) } ?: "varies"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = moneyColors.loss,
-                )
-            }
-            day.upcomingBills.forEach { bill ->
-                Text(
-                    "Due: ${bill.name} · " +
-                        (bill.amountCents?.let { Money.format(it) } ?: "varies"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
+            // Bills render exactly like the Reminders screen's rows
+            (day.overdueBills + day.upcomingBills).forEach { bill ->
+                ReminderRow(row = bill, onClick = {}, onPost = null, onSkip = null)
             }
 
             // Past days show what actually happened: the day's transactions,

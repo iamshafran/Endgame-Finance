@@ -31,6 +31,21 @@ data class BudgetSummaryUi(
     val slices: List<com.endgamefinance.ui.components.SpendSlice> = emptyList(),
 )
 
+data class MiniDay(
+    val dayOfMonth: Int,
+    /** 0 none · 1 below avg · 2 near avg · 3 above avg. */
+    val momentum: Int,
+    val hasBill: Boolean,
+    val isToday: Boolean,
+)
+
+data class MiniCalendarUi(
+    val monthLabel: String = "",
+    /** Blank cells before day 1, Sunday-first. */
+    val leadingBlanks: Int = 0,
+    val days: List<MiniDay> = emptyList(),
+)
+
 data class TopCategory(
     val displayName: String,
     val icon: String?,
@@ -118,6 +133,66 @@ class DashboardViewModel(private val db: EndgameDatabase) : ViewModel() {
                 } else top,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BudgetSummaryUi())
+    }
+
+    /** Current month at a glance: spend momentum per day + bill-due dots. */
+    val miniCalendar: StateFlow<MiniCalendarUi> = run {
+        val ym = YearMonth.now()
+        val start = MonthUtil.startMs(ym)
+        val end = MonthUtil.endMs(ym)
+        val now = System.currentTimeMillis()
+        combine(
+            db.budgetDao().observeSpendByDay(start, end),
+            db.budgetDao().observeTotalSpend(now - 90L * 86_400_000L, now),
+            db.reminderDao().observeAll(),
+        ) { daySpends, totalSpend90, reminders ->
+            val avgDaily = totalSpend90 / 90
+            val zone = java.time.ZoneId.systemDefault()
+            val today = java.time.LocalDate.now()
+            val spentByDay = daySpends.associateBy({ it.day }, { it.spent })
+            val billDays = mutableSetOf<Int>()
+            reminders.forEach { reminder ->
+                var current = reminder
+                var guard = 0
+                while (current.nextDueDate < end && guard < 100) {
+                    if (current.nextDueDate >= start) {
+                        billDays += java.time.Instant.ofEpochMilli(current.nextDueDate)
+                            .atZone(zone).toLocalDate().dayOfMonth
+                    }
+                    if (current.frequency == "once") break
+                    current = current.copy(
+                        nextDueDate = com.endgamefinance.data.repo.ReminderRepository
+                            .nextOccurrence(current),
+                    )
+                    guard++
+                }
+            }
+            val days = (1..ym.lengthOfMonth()).map { dayOfMonth ->
+                val date = ym.atDay(dayOfMonth)
+                val spent = spentByDay[
+                    "%04d-%02d-%02d".format(date.year, date.monthValue, date.dayOfMonth),
+                ] ?: 0L
+                // Same thresholds as the full calendar's momentum coloring
+                val momentum = when {
+                    spent == 0L -> 0
+                    avgDaily <= 0 -> 2
+                    spent < avgDaily * 3 / 4 -> 1
+                    spent <= avgDaily * 3 / 2 -> 2
+                    else -> 3
+                }
+                MiniDay(
+                    dayOfMonth = dayOfMonth,
+                    momentum = momentum,
+                    hasBill = dayOfMonth in billDays,
+                    isToday = date == today,
+                )
+            }
+            MiniCalendarUi(
+                monthLabel = MonthUtil.label(ym),
+                leadingBlanks = ym.atDay(1).dayOfWeek.value % 7,
+                days = days,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MiniCalendarUi())
     }
 
     val uiState: StateFlow<DashboardUiState> =

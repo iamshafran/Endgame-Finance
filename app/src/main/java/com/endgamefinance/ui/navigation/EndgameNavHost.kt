@@ -58,7 +58,8 @@ private fun TabIcon(route: String) {
 fun EndgameApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // Routes with query args report their full pattern; compare on the base
+    val currentRoute = backStackEntry?.destination?.route?.substringBefore('?')
 
     fun navigateToTab(route: String) {
         navController.navigate(route) {
@@ -160,6 +161,14 @@ fun EndgameApp() {
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                     onOpenAssistant = { navController.navigate(Routes.ASSISTANT) },
                     onAddTransaction = { navController.navigate(Routes.TRANSACTION_ADD) },
+                    onOpenCalendar = {
+                        navController.navigate("${Routes.REMINDERS}?section=calendar") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(Routes.SEARCH) {
@@ -203,12 +212,21 @@ fun EndgameApp() {
             composable(Routes.BUDGET) {
                 BudgetScreen()
             }
-            composable(Routes.REMINDERS) {
+            composable(
+                route = "${Routes.REMINDERS}?section={section}",
+                arguments = listOf(
+                    navArgument("section") {
+                        type = NavType.StringType
+                        defaultValue = "bills"
+                    },
+                ),
+            ) { entry ->
                 RemindersScreen(
                     onAddReminder = { navController.navigate(Routes.REMINDER_EDIT) },
                     onEditReminder = { id ->
                         navController.navigate("${Routes.REMINDER_EDIT}?reminderId=$id")
                     },
+                    initialSection = entry.arguments?.getString("section") ?: "bills",
                 )
             }
             composable(

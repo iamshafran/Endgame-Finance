@@ -129,7 +129,10 @@ class ImportViewModel(private val appContext: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val db = DatabaseProvider.get(appContext)
-                _state.value = ImportUi.DoneDb(BluecoinsDbImport.import(db, plan))
+                val summary = BluecoinsDbImport.import(db, plan)
+                // Imported history changes every past balance — rebuild the trend
+                com.endgamefinance.data.repo.SnapshotWriter.rebuild(db)
+                _state.value = ImportUi.DoneDb(summary)
             } catch (e: Exception) {
                 _state.value = ImportUi.Failed(e.message ?: e.javaClass.simpleName)
             }
@@ -142,6 +145,8 @@ class ImportViewModel(private val appContext: Context) : ViewModel() {
             try {
                 val db = DatabaseProvider.get(appContext)
                 val summary = BluecoinsImport.import(db, mapping, dataRows)
+                // Imported history changes every past balance — rebuild the trend
+                com.endgamefinance.data.repo.SnapshotWriter.rebuild(db)
                 _state.value = ImportUi.Done(summary)
             } catch (e: Exception) {
                 _state.value = ImportUi.Failed(e.message ?: e.javaClass.simpleName)

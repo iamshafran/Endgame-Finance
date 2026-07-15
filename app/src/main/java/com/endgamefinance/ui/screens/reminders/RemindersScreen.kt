@@ -65,10 +65,11 @@ import java.util.Date
 fun RemindersScreen(
     onAddReminder: () -> Unit,
     onEditReminder: (String) -> Unit,
+    initialSection: String = "bills",
     viewModel: RemindersViewModel =
         viewModel(factory = RemindersViewModel.factory(LocalContext.current)),
 ) {
-    var section by remember { mutableStateOf("bills") }
+    var section by remember { mutableStateOf(initialSection) }
 
     // Ask for the notification permission when the user first lands here —
     // the one place its purpose is self-evident. Declining just means
@@ -484,8 +485,9 @@ private fun SectionHeader(title: String, color: androidx.compose.ui.graphics.Col
     )
 }
 
+/** Shared with CalendarTab's day detail — keep it presentation-only. */
 @Composable
-private fun ReminderRow(
+internal fun ReminderRow(
     row: ReminderUi,
     onClick: () -> Unit,
     onPost: (() -> Unit)?,
@@ -525,7 +527,7 @@ private fun ReminderRow(
                     },
                     contentDescription = null,
                     tint = when {
-                        isTransferReminder -> MaterialTheme.colorScheme.onSurfaceVariant
+                        isTransferReminder -> MaterialTheme.colorScheme.tertiary
                         row.categoryIcon == null -> MaterialTheme.colorScheme.onSurfaceVariant
                         row.isIncome -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.tertiary
@@ -565,7 +567,7 @@ private fun ReminderRow(
             // transfers neutral
             val isTransfer = row.toAccountName != null
             val amountColor = when {
-                isTransfer -> MaterialTheme.colorScheme.onSurfaceVariant
+                isTransfer -> MaterialTheme.colorScheme.tertiary
                 row.isIncome -> moneyColors.gain
                 else -> moneyColors.loss
             }
