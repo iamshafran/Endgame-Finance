@@ -527,7 +527,7 @@ internal fun ReminderRow(
                     },
                     contentDescription = null,
                     tint = when {
-                        isTransferReminder -> MaterialTheme.colorScheme.tertiary
+                        isTransferReminder -> moneyColors.transfer
                         row.categoryIcon == null -> MaterialTheme.colorScheme.onSurfaceVariant
                         row.isIncome -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.tertiary
@@ -567,7 +567,7 @@ internal fun ReminderRow(
             // transfers neutral
             val isTransfer = row.toAccountName != null
             val amountColor = when {
-                isTransfer -> MaterialTheme.colorScheme.tertiary
+                isTransfer -> moneyColors.transfer
                 row.isIncome -> moneyColors.gain
                 else -> moneyColors.loss
             }

@@ -849,8 +849,8 @@ fun TransactionRow(
     val (amountText, amountColor) = when (item.type) {
         "income" -> "+${Money.format(item.totalAmount)}" to moneyColors.gain
         "expense" -> "−${Money.format(item.totalAmount)}" to moneyColors.loss
-        // Transfers wear the palette's tertiary accent
-        else -> Money.format(item.totalAmount) to MaterialTheme.colorScheme.tertiary
+        // Transfers wear their own color, distinct from income AND expense
+        else -> Money.format(item.totalAmount) to moneyColors.transfer
     }
     Row(
         modifier = Modifier
@@ -884,9 +884,12 @@ fun TransactionRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            // Income primary, expense tertiary; transfers also tertiary
-            val accent = if (item.type == "income") MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.tertiary
+            // Income primary, expense tertiary, transfers their own color
+            val accent = when {
+                item.type == "transfer" -> moneyColors.transfer
+                item.type == "income" -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.tertiary
+            }
             if (hasIcon) {
                 Icon(
                     imageVector = leadingIcon,

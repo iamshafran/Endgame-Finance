@@ -7,14 +7,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Semantic colors that sit outside the Material scheme (gains/losses). */
+/** Semantic colors that sit outside the Material scheme (gains/losses/transfers). */
 data class MoneyColors(
     val gain: Color,
     val loss: Color,
+    /** Money moving, not earned or spent — always distinct from gain AND loss. */
+    val transfer: Color,
 )
 
 val LocalMoneyColors = staticCompositionLocalOf {
-    MoneyColors(gain = GainLight, loss = LossLight)
+    MoneyColors(gain = GainLight, loss = LossLight, transfer = GoldTertiaryLight)
 }
 
 /** Optional second face for amounts (see AppFont.moneyFamily); null = text font. */

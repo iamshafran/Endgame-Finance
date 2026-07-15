@@ -30,31 +30,35 @@ fun colorSchemeFor(palette: ThemePalette, dark: Boolean): ColorScheme = when (pa
 // Rule (owner, 2026-07-15): if the palette contains a green, that green IS the
 // income/cleared color; if it contains a red, that red IS the expense color.
 // Palettes missing one borrow a complementary shade that fits their mood.
+// The transfer color is always distinct from both gain and loss.
 fun moneyColorsFor(palette: ThemePalette, dark: Boolean): MoneyColors = when (palette) {
     // Evergreen: the brand primary green doubles as income; no red in the
-    // palette, so expenses use a complementary red.
+    // palette, so expenses use a complementary red. Transfers wear the gold.
     ThemePalette.DEFAULT ->
-        if (dark) MoneyColors(GreenPrimaryDark, LossDark)
-        else MoneyColors(GreenPrimaryLight, LossLight)
+        if (dark) MoneyColors(GreenPrimaryDark, LossDark, GoldTertiaryDark)
+        else MoneyColors(GreenPrimaryLight, LossLight, GoldTertiaryLight)
     // Cyberpunk: no green (yellow/cyan/magenta) — complementary neon green;
-    // its hot magenta-red accent is the expense color.
+    // its hot magenta-red accent is the expense color. Transfers can't use
+    // tertiary (that IS the expense magenta) — the signature cyan instead.
     ThemePalette.CYBERPUNK ->
-        if (dark) MoneyColors(Color(0xFF00FF9F), Color(0xFFFF3B6E))
-        else MoneyColors(Color(0xFF00695C), Color(0xFFB00042))
+        if (dark) MoneyColors(Color(0xFF00FF9F), Color(0xFFFF3B6E), Color(0xFF00E5FF))
+        else MoneyColors(Color(0xFF00695C), Color(0xFFB00042), Color(0xFF00697A))
     // Marathoner: the signature lime IS the palette's green — income wears it;
-    // no red, so expenses use a complementary warm red.
+    // no red, so expenses use a complementary warm red. Transfers: cool blue.
     ThemePalette.MARATHON ->
-        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFFF6B5A))
-        else MoneyColors(Color(0xFF4C6600), Color(0xFFB3261E))
-    // Golden Rush: neither green nor red — warm complementary shades.
+        if (dark) MoneyColors(Color(0xFFC0FE04), Color(0xFFFF6B5A), Color(0xFF8AD5FF))
+        else MoneyColors(Color(0xFF4C6600), Color(0xFFB3261E), Color(0xFF00668A))
+    // Golden Rush: neither green nor red — warm complementary shades; the
+    // metallic gold marks transfers.
     ThemePalette.GOLDEN_RUSH ->
-        if (dark) MoneyColors(Color(0xFF8FD98A), Color(0xFFFF8A7D))
-        else MoneyColors(Color(0xFF2E7D32), Color(0xFFB3261E))
-    // Monochrome: gains read bold (near onSurface), losses dimmed grey; the
-    // +/- sign carries meaning, so color is not the only cue.
+        if (dark) MoneyColors(Color(0xFF8FD98A), Color(0xFFFF8A7D), Color(0xFFE6C97A))
+        else MoneyColors(Color(0xFF2E7D32), Color(0xFFB3261E), Color(0xFF7E5A00))
+    // Monochrome: gains read bold (near onSurface), losses dimmed grey,
+    // transfers a mid grey between them; the +/- sign and the transfer glyph
+    // carry meaning, so color is never the only cue.
     ThemePalette.MONOCHROME ->
-        if (dark) MoneyColors(Color(0xFFF0F0F0), Color(0xFF9A9A9A))
-        else MoneyColors(Color(0xFF1A1A1A), Color(0xFF8A8A8A))
+        if (dark) MoneyColors(Color(0xFFF0F0F0), Color(0xFF9A9A9A), Color(0xFFC4C4C4))
+        else MoneyColors(Color(0xFF1A1A1A), Color(0xFF8A8A8A), Color(0xFF4E4E4E))
 }
 
 // ---------------------------------------------------------------- Default
