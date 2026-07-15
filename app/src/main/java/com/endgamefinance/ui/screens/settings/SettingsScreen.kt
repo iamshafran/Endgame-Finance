@@ -140,6 +140,30 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            val iconStyleKey by settings.iconStyle.collectAsState()
+            Text(
+                "Category icons",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+            val iconOptions = com.endgamefinance.ui.components.IconStyle.entries
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                iconOptions.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = iconStyleKey == option.key,
+                        onClick = { settings.setIconStyle(option.key) },
+                        shape = SegmentedButtonDefaults.itemShape(index, iconOptions.size),
+                    ) { Text(option.label) }
+                }
+            }
+            Text(
+                "Material is the classic filled look; Lucide is a lighter outlined " +
+                    "set. Your chosen icons keep their meaning either way — icons " +
+                    "without a Lucide twin stay Material.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         // ---- Currency ----

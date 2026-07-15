@@ -57,6 +57,17 @@ class AppSettings private constructor(context: Context) {
         _fontKey.value = key
     }
 
+    private val _iconStyle = MutableStateFlow(
+        prefs.getString(KEY_ICON_STYLE, ICON_STYLE_DEFAULT) ?: ICON_STYLE_DEFAULT,
+    )
+    /** IconStyle.key — Material or Lucide category icons. */
+    val iconStyle: StateFlow<String> = _iconStyle.asStateFlow()
+
+    fun setIconStyle(key: String) {
+        prefs.edit().putString(KEY_ICON_STYLE, key).apply()
+        _iconStyle.value = key
+    }
+
     companion object {
         const val THEME_SYSTEM = "system"
         const val THEME_LIGHT = "light"
@@ -66,11 +77,13 @@ class AppSettings private constructor(context: Context) {
 
         const val PALETTE_DEFAULT = "DEFAULT"
         const val FONT_DEFAULT = "plex_mono"
+        const val ICON_STYLE_DEFAULT = "material"
 
         private const val KEY_THEME = "theme_mode"
         private const val KEY_CURRENCY = "currency_code"
         private const val KEY_PALETTE = "palette"
         private const val KEY_FONT = "font"
+        private const val KEY_ICON_STYLE = "icon_style"
 
         @Volatile
         private var instance: AppSettings? = null

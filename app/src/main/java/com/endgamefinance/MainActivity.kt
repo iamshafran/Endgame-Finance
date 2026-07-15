@@ -50,6 +50,11 @@ class MainActivity : FragmentActivity() {
             }.getOrDefault(com.endgamefinance.ui.theme.ThemePalette.DEFAULT)
             val fontKey by settings.fontKey.collectAsState()
             val font = com.endgamefinance.ui.theme.AppFont.fromKey(fontKey)
+            // Snapshot-backed global; equal writes are no-ops, so assigning
+            // during composition is safe and icon consumers recompose on change.
+            val iconStyleKey by settings.iconStyle.collectAsState()
+            com.endgamefinance.ui.components.IconCatalog.style =
+                com.endgamefinance.ui.components.IconStyle.fromKey(iconStyleKey)
             EndgameTheme(
                 palette = palette, font = font,
                 darkTheme = darkTheme, oledBlack = oledBlack,
