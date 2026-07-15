@@ -191,6 +191,10 @@ fun EndgameApp() {
                 TransactionEntryScreen(
                     transactionId = entry.arguments?.getString("transactionId"),
                     onDone = { navController.popBackStack() },
+                    onScanReceipt = {
+                        navController.navigate("${Routes.RECEIPT_SCAN}?forResult=true")
+                    },
+                    resultHandle = entry.savedStateHandle,
                 )
             }
             composable(Routes.BUDGET) {
@@ -230,9 +234,26 @@ fun EndgameApp() {
                     onOpenReceiptScan = { navController.navigate(Routes.RECEIPT_SCAN) },
                 )
             }
-            composable(Routes.RECEIPT_SCAN) {
+            composable(
+                route = "${Routes.RECEIPT_SCAN}?forResult={forResult}",
+                arguments = listOf(
+                    navArgument("forResult") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
+            ) { entry ->
+                val forResult = entry.arguments?.getBoolean("forResult") == true
                 com.endgamefinance.ui.screens.receipt.ReceiptScanScreen(
                     onBack = { navController.popBackStack() },
+                    // Launched from the entry form: hand the parsed receipt back
+                    onUseInEntry = if (forResult) {
+                        { json ->
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle?.set("receipt_result", json)
+                            navController.popBackStack()
+                        }
+                    } else null,
                 )
             }
             composable(Routes.ASSISTANT) {

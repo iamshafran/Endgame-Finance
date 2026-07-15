@@ -56,9 +56,15 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Date
 
+/**
+ * @param onUseInEntry When set (launched from the New Transaction screen), the
+ * review step hands the parsed receipt back as JSON instead of posting a
+ * transaction itself — the entry form prefills from it.
+ */
 @Composable
 fun ReceiptScanScreen(
     onBack: () -> Unit,
+    onUseInEntry: ((String) -> Unit)? = null,
     viewModel: ReceiptScanViewModel =
         viewModel(factory = ReceiptScanViewModel.factory(LocalContext.current)),
 ) {
@@ -91,6 +97,7 @@ fun ReceiptScanScreen(
             is ReceiptUi.Review -> ReviewView(
                 modifier = Modifier.padding(innerPadding),
                 viewModel = viewModel,
+                onUseInEntry = onUseInEntry,
             )
 
             is ReceiptUi.Saved -> Column(
@@ -189,9 +196,37 @@ private fun ProgressView(modifier: Modifier, label: String) {
     }
 }
 
+/** Serializes the reviewed receipt for the entry form's prefill. */
+private fun resultJson(
+    merchant: String,
+    timestamp: Long,
+    accountId: String?,
+    lines: List<ReceiptLine>,
+): String {
+    val arr = org.json.JSONArray()
+    lines.filter { it.amountCents > 0 }.forEach { line ->
+        arr.put(
+            org.json.JSONObject()
+                .put("description", line.description)
+                .put("amountCents", line.amountCents)
+                .put("categoryId", line.categoryId ?: org.json.JSONObject.NULL),
+        )
+    }
+    return org.json.JSONObject()
+        .put("merchant", merchant)
+        .put("timestamp", timestamp)
+        .put("accountId", accountId ?: org.json.JSONObject.NULL)
+        .put("lines", arr)
+        .toString()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewView(modifier: Modifier, viewModel: ReceiptScanViewModel) {
+private fun ReviewView(
+    modifier: Modifier,
+    viewModel: ReceiptScanViewModel,
+    onUseInEntry: ((String) -> Unit)? = null,
+) {
     val merchant by viewModel.merchant.collectAsState()
     val lines by viewModel.lines.collectAsState()
     val accountId by viewModel.accountId.collectAsState()
@@ -301,8 +336,17 @@ private fun ReviewView(modifier: Modifier, viewModel: ReceiptScanViewModel) {
             }
         }
         item {
-            Button(onClick = { viewModel.save() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Save transaction")
+            Button(
+                onClick = {
+                    if (onUseInEntry != null) {
+                        onUseInEntry(resultJson(merchant, timestamp, accountId, lines))
+                    } else {
+                        viewModel.save()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (onUseInEntry != null) "Use in transaction" else "Save transaction")
             }
         }
         item {

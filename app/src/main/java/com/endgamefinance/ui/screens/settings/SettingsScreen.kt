@@ -133,9 +133,10 @@ fun SettingsScreen(
                 onSelect = { picked -> picked?.let { settings.setFontKey(it) } },
             )
             Text(
-                "IBM Plex Mono is the default. All bundled fonts are chosen for " +
-                    "readability; Atkinson Hyperlegible is designed for low-vision clarity. " +
-                    "Fonts ship with the app — nothing is downloaded.",
+                "IBM Plex Mono is the default. IBM Plex Sans pairs sans text with " +
+                    "Plex Mono digits so amounts stay column-aligned; Atkinson " +
+                    "Hyperlegible is designed for low-vision clarity. Fonts ship " +
+                    "with the app — nothing is downloaded.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -17,6 +17,10 @@ val LocalMoneyColors = staticCompositionLocalOf {
     MoneyColors(gain = GainLight, loss = LossLight)
 }
 
+/** Optional second face for amounts (see AppFont.moneyFamily); null = text font. */
+val LocalMoneyFontFamily =
+    staticCompositionLocalOf<androidx.compose.ui.text.font.FontFamily?> { null }
+
 @Composable
 fun EndgameTheme(
     palette: ThemePalette = ThemePalette.DEFAULT,
@@ -51,7 +55,10 @@ fun EndgameTheme(
     }
     val moneyColors = moneyColorsFor(palette, effectiveDark)
 
-    CompositionLocalProvider(LocalMoneyColors provides moneyColors) {
+    CompositionLocalProvider(
+        LocalMoneyColors provides moneyColors,
+        LocalMoneyFontFamily provides font.moneyFamily,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = endgameTypography(font.family),
