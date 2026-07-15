@@ -358,6 +358,10 @@ fun LedgerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // Last row scrolls clear of the FAB
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = Spacing.fabClearance,
+            ),
         ) {
             if (showFilters) {
                 item(key = "filters") {

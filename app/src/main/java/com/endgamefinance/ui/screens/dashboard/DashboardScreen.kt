@@ -283,7 +283,7 @@ fun DashboardScreen(
             }
         }
         // Breathing room so the FAB never covers the last card
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(Spacing.fabClearance))
     }
     }
 }

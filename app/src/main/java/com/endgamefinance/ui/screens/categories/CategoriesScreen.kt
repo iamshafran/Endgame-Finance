@@ -81,7 +81,13 @@ fun CategoriesScreen(
             .fillMaxSize()
             .padding(innerPadding),
     ) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            // Last row scrolls clear of the FAB
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = Spacing.fabClearance,
+            ),
+        ) {
             section(
                 title = "Expense",
                 type = Category.TYPE_EXPENSE,

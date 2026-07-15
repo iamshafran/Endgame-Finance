@@ -135,7 +135,13 @@ private fun BillsTab(
     var loanTarget by remember { mutableStateOf<ReminderUi?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            // Last row scrolls clear of the FAB
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = Spacing.fabClearance,
+            ),
+        ) {
             if (state.due.isNotEmpty() || state.upcoming.isNotEmpty()) {
                 item(key = "planned_totals_top") {
                     PlannedTotalsCard(state)

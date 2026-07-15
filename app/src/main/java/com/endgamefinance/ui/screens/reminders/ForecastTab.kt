@@ -28,7 +28,13 @@ import java.util.Date
 fun ForecastTab(viewModel: RemindersViewModel) {
     val forecasts by viewModel.forecasts.collectAsState()
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // Last row scrolls clear of the FAB
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = Spacing.fabClearance,
+        ),
+    ) {
         item(key = "intro") {
             Text(
                 text = "Next 30 days, from posted balances plus scheduled bills and income.",

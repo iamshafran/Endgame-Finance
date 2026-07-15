@@ -149,6 +149,8 @@ fun CalendarTab(viewModel: RemindersViewModel) {
                 DayDetail(day, state.forecasts, pastDetail)
             }
         }
+        // Last content scrolls clear of the FAB
+        Box(modifier = Modifier.padding(bottom = Spacing.fabClearance))
     }
 
     ExplainSheet(viewModel)
