@@ -28,9 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.endgamefinance.ui.components.IconCatalog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,19 +39,25 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.endgamefinance.data.repo.SafeToSpend
 import com.endgamefinance.ui.components.NetWorthChart
 import com.endgamefinance.ui.theme.LocalMoneyColors
+import com.endgamefinance.ui.theme.ThemePalette
+import com.endgamefinance.ui.theme.colorSchemeFor
+import com.endgamefinance.ui.theme.moneyColorsFor
 import com.endgamefinance.ui.theme.tabular
 import com.endgamefinance.ui.theme.Spacing
 import com.endgamefinance.util.Money
@@ -79,6 +85,7 @@ fun DashboardScreen(
 
     com.endgamefinance.ui.components.EndgameScaffold(
         title = "Dashboard",
+        titleStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
         actions = {
             IconButton(onClick = onOpenAssistant) {
                 Icon(Icons.Filled.AutoAwesome, contentDescription = "AI assistant")
@@ -108,63 +115,68 @@ fun DashboardScreen(
         val topCategories by viewModel.topCategories.collectAsState()
         val miniCalendar by viewModel.miniCalendar.collectAsState()
 
-        // Widgets render in the user's chosen order; hidden ones are skipped
-        widgetOrder.filterNot { it in hiddenWidgets }.forEach { key ->
-            when (key) {
-                DashboardPrefs.SAFE_TO_SPEND -> state.safeToSpend?.let { SafeToSpendCard(it) }
-                DashboardPrefs.NET_WORTH -> NetWorthCard(state.netWorth, snapshots)
-                DashboardPrefs.CALENDAR ->
-                    MiniCalendarCard(miniCalendar, onOpenCalendar)
-                DashboardPrefs.CASH_FLOW -> if (cashFlow.isNotEmpty()) CashFlowCard(cashFlow)
-                DashboardPrefs.BUDGET ->
-                    if (budgetSummary.slices.isNotEmpty()) BudgetSummaryCard(budgetSummary)
-                DashboardPrefs.TOP_SPENDING ->
-                    if (topCategories.isNotEmpty()) TopSpendingCard(topCategories)
+        DashboardCardTheme {
+            // Widgets render in the user's chosen order; hidden ones are skipped
+            widgetOrder.filterNot { it in hiddenWidgets }.forEach { key ->
+                when (key) {
+                    DashboardPrefs.SAFE_TO_SPEND -> state.safeToSpend?.let { SafeToSpendCard(it) }
+                    DashboardPrefs.NET_WORTH -> NetWorthCard(state.netWorth, snapshots)
+                    DashboardPrefs.CALENDAR ->
+                        MiniCalendarCard(miniCalendar, onOpenCalendar)
+                    DashboardPrefs.CASH_FLOW -> if (cashFlow.isNotEmpty()) CashFlowCard(cashFlow)
+                    DashboardPrefs.BUDGET ->
+                        if (budgetSummary.slices.isNotEmpty()) BudgetSummaryCard(budgetSummary)
+                    DashboardPrefs.TOP_SPENDING ->
+                        if (topCategories.isNotEmpty()) TopSpendingCard(topCategories)
+                }
             }
-        }
 
-        // Contextual nudges are not configurable — they only appear when they matter
-        val nudgeDue = remember { com.endgamefinance.security.BackupPrefs.isNudgeDue(context) }
-        if (nudgeDue) {
-            val lastBackup = remember {
-                com.endgamefinance.security.BackupPrefs.lastBackupAt(context)
+            // Contextual nudges are not configurable — they only appear when they matter
+            val nudgeDue = remember {
+                com.endgamefinance.security.BackupPrefs.isNudgeDue(context)
             }
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                    .clickable(onClick = onOpenSettings),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                ),
-            ) {
-                Text(
-                    text = if (lastBackup == 0L) {
-                        "You haven't made a backup yet. Tap to create an encrypted backup."
-                    } else {
-                        val days = (System.currentTimeMillis() - lastBackup) / 86_400_000L
-                        "It's been $days days since your last backup. Tap to back up now."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.padding(Spacing.md),
-                )
+            if (nudgeDue) {
+                val lastBackup = remember {
+                    com.endgamefinance.security.BackupPrefs.lastBackupAt(context)
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                        .clickable(onClick = onOpenSettings),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                ) {
+                    Text(
+                        text = if (lastBackup == 0L) {
+                            "You haven't made a backup yet. Tap to create an encrypted backup."
+                        } else {
+                            val days = (System.currentTimeMillis() - lastBackup) / 86_400_000L
+                            "It's been $days days since your last backup. Tap to back up now."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(Spacing.md),
+                    )
+                }
             }
-        }
 
-        if (state.dueBillCount > 0) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
-            ) {
-                Text(
-                    text = "${state.dueBillCount} bill${if (state.dueBillCount > 1) "s" else ""} " +
-                        "waiting on the Reminders tab",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(Spacing.md),
-                )
+            if (state.dueBillCount > 0) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                ) {
+                    Text(
+                        text = "${state.dueBillCount} bill" +
+                            "${if (state.dueBillCount > 1) "s" else ""} " +
+                            "waiting on the Reminders tab",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(Spacing.md),
+                    )
+                }
             }
         }
         // Breathing room so the FAB never covers the last card
@@ -229,6 +241,34 @@ fun DashboardScreen(
     }
 }
 
+/**
+ * Fixed lime-on-black skin for the dashboard's widget cards — reuses the
+ * app's own Marathoner palette (already lime-on-near-black) pushed to true
+ * OLED black, so cards read as bold, high-contrast tiles regardless of the
+ * app's selected theme/palette. Only wraps the card column, not the page
+ * canvas or app bar, which keep the ambient theme.
+ */
+@Composable
+private fun DashboardCardTheme(content: @Composable () -> Unit) {
+    val base = colorSchemeFor(ThemePalette.MARATHON, dark = true)
+    val blackScheme = base.copy(
+        background = Color(0xFF000000),
+        surface = Color(0xFF000000),
+        surfaceDim = Color(0xFF000000),
+        surfaceContainerLowest = Color(0xFF000000),
+        surfaceContainerLow = Color(0xFF0D0D0D),
+        surfaceContainer = Color(0xFF141414),
+        surfaceContainerHigh = Color(0xFF1D1D1D),
+        surfaceContainerHighest = Color(0xFF262626),
+    )
+    val moneyColors = moneyColorsFor(ThemePalette.MARATHON, dark = true)
+    val typography = MaterialTheme.typography
+    val shapes = MaterialTheme.shapes
+    MaterialTheme(colorScheme = blackScheme, typography = typography, shapes = shapes) {
+        CompositionLocalProvider(LocalMoneyColors provides moneyColors, content = content)
+    }
+}
+
 @Composable
 private fun NetWorthCard(
     netWorth: Long,
@@ -247,7 +287,12 @@ private fun NetWorthCard(
                     .padding(Spacing.md),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Net worth", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Net Worth",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
                 Text(
                     Money.format(netWorth),
                     style = MaterialTheme.typography.titleMedium,
@@ -481,45 +526,81 @@ private fun MiniCalendarCard(ui: MiniCalendarUi, onOpenCalendar: () -> Unit) {
 
 @Composable
 private fun SafeToSpendCard(sts: SafeToSpend) {
-    val moneyColors = LocalMoneyColors.current
     var expanded by remember { mutableStateOf(false) }
 
-    // Hero treatment: the app's most important number owns the strongest surface
+    // Hero block: the app's most important number owns the boldest surface —
+    // full primary (lime), not the softer primaryContainer, per the redesign.
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .clickable { expanded = !expanded },
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary,
         ),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
-                text = "Safe to spend",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Safe to Spend",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Icon(
+                    imageVector = if (expanded) {
+                        Icons.Filled.KeyboardArrowUp
+                    } else {
+                        Icons.Filled.KeyboardArrowDown
+                    },
+                    contentDescription = if (expanded) "Collapse breakdown" else "Show breakdown",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
             Text(
                 text = Money.format(sts.amountCents),
-                style = MaterialTheme.typography.displaySmall.tabular,
-                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.onPrimaryContainer
+                style = MaterialTheme.typography.displaySmall.tabular.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = if (sts.amountCents >= 0) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.error,
             )
             Text(
                 text = sts.nextIncomeDate?.let {
-                    "until your next income on " +
+                    "Until your next income on " +
                         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(it))
-                } ?: "over the next 30 days (no income scheduled)",
+                } ?: "Over the next 30 days (no income scheduled)",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
             )
+            if (sts.uncountedVariableBills.isNotEmpty()) {
+                Text(
+                    text = "Not counted (amount varies): " +
+                        sts.uncountedVariableBills.joinToString(", "),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
+        }
+    }
 
-            if (expanded) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
-                BreakdownRow("Cash in asset accounts", sts.liquidBalances, positive = true)
-                BreakdownRow("Set aside in envelopes", -sts.envelopeFunds, positive = false)
-                BreakdownRow("Bills before next income", -sts.upcomingBills, positive = false)
+    // Breakdown block: a separate near-black card beneath the hero, matching
+    // the design's two-tile stack; only present once the hero is tapped open.
+    if (expanded) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        ) {
+            Column(modifier = Modifier.padding(Spacing.md)) {
+                BreakdownRow("Cash in Asset Accounts", sts.liquidBalances, positive = true)
+                BreakdownRow("Set aside in Envelopes", -sts.envelopeFunds, positive = false)
+                BreakdownRow("Bills before next Income", -sts.upcomingBills, positive = false)
                 BreakdownRow(
                     "Unspent budget commitments",
                     -sts.remainingBudgetCommitments,
@@ -530,22 +611,6 @@ private fun SafeToSpendCard(sts: SafeToSpend) {
                         "already promised. Credit card limits never count.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
-            } else {
-                Text(
-                    text = "Tap for the breakdown",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            if (sts.uncountedVariableBills.isNotEmpty()) {
-                Text(
-                    text = "Not counted (amount varies): " +
-                        sts.uncountedVariableBills.joinToString(", "),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
             }

@@ -16,6 +16,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.TextStyle
 
 /**
  * Standard M3 screen chrome: a pinned TopAppBar (title stays put, recolors as
@@ -33,6 +34,8 @@ fun EndgameScaffold(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     centered: Boolean = false,
+    /** Overrides the title's default TopAppBar text style; null keeps the M3 default. */
+    titleStyle: TextStyle? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
@@ -45,20 +48,23 @@ fun EndgameScaffold(
             }
         }
     }
+    val titleContent: @Composable () -> Unit = {
+        if (titleStyle != null) Text(title, style = titleStyle) else Text(title)
+    }
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (centered) {
                 CenterAlignedTopAppBar(
-                    title = { Text(title) },
+                    title = titleContent,
                     navigationIcon = navigationIcon,
                     actions = actions,
                     scrollBehavior = scrollBehavior,
                 )
             } else {
                 TopAppBar(
-                    title = { Text(title) },
+                    title = titleContent,
                     navigationIcon = navigationIcon,
                     actions = actions,
                     scrollBehavior = scrollBehavior,

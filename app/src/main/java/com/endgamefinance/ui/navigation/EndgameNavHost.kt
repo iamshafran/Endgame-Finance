@@ -10,12 +10,13 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -43,14 +44,21 @@ import com.endgamefinance.ui.screens.settings.SettingsScreen
 import com.endgamefinance.ui.screens.reminders.RemindersScreen
 import com.endgamefinance.ui.screens.tags.TagsScreen
 
+// Fixed lime-on-black bottom bar, independent of the app's selected theme
+// palette — matches the redesign's branded nav bar (owner-approved 2026-07-16).
+private val NavBarBlack = Color(0xFF000000)
+private val NavBarLime = Color(0xFFC0FE04)
+private val NavBarInkOnLime = Color(0xFF1A2600)
+private val NavBarIconInactive = Color(0xFFB5B5B5)
+
 @Composable
-private fun TabIcon(route: String) {
+private fun TabIcon(route: String, label: String) {
     when (route) {
-        Routes.DASHBOARD -> Icon(Icons.Filled.Home, contentDescription = null)
-        Routes.LEDGER -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
-        Routes.BUDGET -> Icon(painterResource(R.drawable.ic_budget), contentDescription = null)
-        Routes.REMINDERS -> Icon(Icons.Filled.Notifications, contentDescription = null)
-        Routes.MORE -> Icon(Icons.Filled.MoreVert, contentDescription = null)
+        Routes.DASHBOARD -> Icon(Icons.Filled.Home, contentDescription = label)
+        Routes.LEDGER -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = label)
+        Routes.BUDGET -> Icon(painterResource(R.drawable.ic_budget), contentDescription = label)
+        Routes.REMINDERS -> Icon(Icons.Filled.Notifications, contentDescription = label)
+        Routes.MORE -> Icon(Icons.Filled.MoreVert, contentDescription = label)
     }
 }
 
@@ -76,7 +84,11 @@ fun EndgameApp() {
         // zero it here so there's no double status-bar padding.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = NavBarBlack,
+                contentColor = Color.White,
+                tonalElevation = 0.dp,
+            ) {
                 bottomTabs.forEach { tab ->
                     // Sub-screens of More keep the More tab highlighted
                     val moreSubRoutes = currentRoute == Routes.ACCOUNTS ||
@@ -96,8 +108,14 @@ fun EndgameApp() {
                     NavigationBarItem(
                         selected = selected,
                         onClick = { navigateToTab(tab.route) },
-                        icon = { TabIcon(tab.route) },
-                        label = { Text(tab.label) },
+                        icon = { TabIcon(tab.route, tab.label) },
+                        label = null,
+                        alwaysShowLabel = false,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = NavBarInkOnLime,
+                            unselectedIconColor = NavBarIconInactive,
+                            indicatorColor = NavBarLime,
+                        ),
                     )
                 }
             }
